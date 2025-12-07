@@ -970,31 +970,78 @@
     let gameState = null;
     let selectedCardIds = [];
     let selectedMode = 'quick';
+    
+    // För reconnect
+    let currentRoomCode = null;
+    let currentPlayerName = null;
+    let keepaliveInterval = null;
 
     // ============================================
     // SOCKET ANSLUTNING
     // ============================================
 
     function connectSocket() {
-      socket = io();
+      socket = io({
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000
+      });
 
       socket.on('connect', () => {
         console.log('Ansluten till server');
+        
+        // Försök återansluta till rum om vi var i ett
+        if (currentRoomCode && currentPlayerName) {
+          console.log('Försöker återansluta till rum:', currentRoomCode);
+          socket.emit('rejoinRoom', { 
+            code: currentRoomCode, 
+            name: currentPlayerName 
+          });
+        }
+        
+        // Starta keepalive-ping var 30:e sekund
+        if (keepaliveInterval) clearInterval(keepaliveInterval);
+        keepaliveInterval = setInterval(() => {
+          if (socket && socket.connected) {
+            socket.emit('ping');
+          }
+        }, 30000);
       });
 
       socket.on('roomCreated', ({ code }) => {
+        currentRoomCode = code;
+        currentPlayerName = document.getElementById('playerName').value.trim();
         document.getElementById('displayRoomCode').textContent = code;
         showScreen('lobbyScreen');
       });
 
       socket.on('roomJoined', ({ code }) => {
+        currentRoomCode = code;
+        currentPlayerName = document.getElementById('playerName').value.trim();
         document.getElementById('displayRoomCode').textContent = code;
         showScreen('lobbyScreen');
+      });
+      
+      socket.on('rejoinSuccess', ({ code }) => {
+        currentRoomCode = code;
+        document.getElementById('displayRoomCode').textContent = code;
+        console.log('Återansluten till rum:', code);
+      });
+      
+      socket.on('rejoinFailed', ({ message }) => {
+        console.log('Kunde inte återansluta:', message);
+        currentRoomCode = null;
+        currentPlayerName = null;
+        showScreen('menuScreen');
+        showError('Rummet finns inte längre. Skapa ett nytt.');
       });
 
       socket.on('gameState', (state) => {
         gameState = state;
-        selectedCardIds = []; // Rensa valda kort vid ny state
+        currentRoomCode = state.code;
+        selectedCardIds = [];
         render();
       });
 
@@ -1007,10 +1054,34 @@
         showError(message);
       });
 
-      socket.on('disconnect', () => {
-        console.log('Frånkopplad från server');
+      socket.on('disconnect', (reason) => {
+        console.log('Frånkopplad från server:', reason);
+        
+        // Rensa keepalive
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+          keepaliveInterval = null;
+        }
+        
+        // Om det inte var en manuell frånkoppling, visa meddelande
+        if (reason !== 'io client disconnect') {
+          showError('Tappad anslutning - försöker återansluta...');
+        }
+      });
+      
+      socket.on('reconnect', (attemptNumber) => {
+        console.log('Återansluten efter', attemptNumber, 'försök');
+      });
+      
+      socket.on('reconnect_error', (error) => {
+        console.log('Återanslutningsfel:', error.message);
+      });
+      
+      socket.on('reconnect_failed', () => {
         showScreen('menuScreen');
-        showError('Anslutningen bröts');
+        showError('Kunde inte återansluta. Försök igen.');
+        currentRoomCode = null;
+        currentPlayerName = null;
       });
     }
 
@@ -1069,6 +1140,8 @@
       }
       gameState = null;
       selectedCardIds = [];
+      currentRoomCode = null;
+      currentPlayerName = null;
       showScreen('menuScreen');
     }
 
@@ -1274,7 +1347,14 @@
       const container = document.getElementById('playersArea');
       container.innerHTML = '';
 
-      for (const player of gameState.players) {
+      // Sortera så att egen spelare visas först
+      const sortedPlayers = [...gameState.players].sort((a, b) => {
+        if (a.isMe) return -1;
+        if (b.isMe) return 1;
+        return 0;
+      });
+
+      for (const player of sortedPlayers) {
         const section = document.createElement('div');
         section.className = `player-section ${player.isCurrent && !gameState.roundEnded ? 'current-player' : ''} ${player.isMe ? 'is-me' : ''} ${player.isWinner ? 'winner' : ''}`;
 
