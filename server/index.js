@@ -9,11 +9,22 @@ const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
-  }
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Keepalive endpoint - förhindrar att Render sover
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    rooms: rooms.size,
+    uptime: process.uptime()
+  });
+});
 
 // ============================================
 // SPELLOGIK
@@ -319,6 +330,71 @@ io.on('connection', (socket) => {
     socket.join(room.code);
     socket.emit('roomJoined', { code: room.code });
     emitRoomState(room);
+  });
+  
+  // Återanslut till rum (efter disconnect)
+  socket.on('rejoinRoom', ({ code, name }) => {
+    const room = getRoom(code);
+    
+    if (!room) {
+      socket.emit('rejoinFailed', { message: 'Rummet finns inte längre' });
+      return;
+    }
+    
+    // Hitta spelaren med samma namn
+    const existingPlayer = room.players.find(p => 
+      p.name.toLowerCase() === name.toLowerCase()
+    );
+    
+    if (existingPlayer) {
+      // Uppdatera spelarens socket-id
+      const oldId = existingPlayer.id;
+      existingPlayer.id = socket.id;
+      existingPlayer.connected = true;
+      
+      // Uppdatera host om det var denna spelare
+      if (room.hostId === oldId) {
+        room.hostId = socket.id;
+      }
+      
+      // Uppdatera asken-hållare om det var denna spelare
+      if (room.askenHolderId === oldId) {
+        room.askenHolderId = socket.id;
+      }
+      
+      playerName = name;
+      currentRoom = room.code;
+      
+      socket.join(room.code);
+      socket.emit('rejoinSuccess', { code: room.code });
+      emitRoomState(room);
+      console.log(`Spelare ${name} återansluten till rum ${code}`);
+    } else {
+      // Spelaren fanns inte - försök gå med som ny om möjligt
+      if (room.state === 'lobby' && room.players.length < 7) {
+        playerName = name;
+        currentRoom = room.code;
+        
+        room.players.push({
+          id: socket.id,
+          name,
+          hand: [],
+          score: 0,
+          connected: true
+        });
+        
+        socket.join(room.code);
+        socket.emit('rejoinSuccess', { code: room.code });
+        emitRoomState(room);
+      } else {
+        socket.emit('rejoinFailed', { message: 'Kunde inte återansluta' });
+      }
+    }
+  });
+  
+  // Keepalive ping
+  socket.on('ping', () => {
+    socket.emit('pong');
   });
   
   // Starta spel
