@@ -1480,15 +1480,22 @@
 
       // Poängtabell
       const tbody = document.getElementById('scoreBody');
-      tbody.innerHTML = gameState.players.map(p => `
-        <tr>
-          <td>${p.name}${p.isMe ? ' (du)' : ''}</td>
-          <td>${p.cardCount}</td>
-          <td>${p.cardCount > 0 ? '?' : '0'}</td>
-          <td class="${p.hasAsken ? 'asken-cell' : ''}">${p.hasAsken ? '+50' : '—'}</td>
-          <td class="total">${p.score}</td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = gameState.players.map(p => {
+        // Hitta rundpoäng för denna spelare
+        const roundScore = gameState.roundScores?.find(rs => rs.playerId === p.id);
+        const cardPoints = roundScore ? roundScore.cardPoints : 0;
+        const askenPoints = roundScore ? roundScore.askenPoints : 0;
+        
+        return `
+          <tr>
+            <td>${p.name}${p.isMe ? ' (du)' : ''}</td>
+            <td>${p.cardCount}</td>
+            <td>${cardPoints}</td>
+            <td class="${askenPoints > 0 ? 'asken-cell' : ''}">${askenPoints > 0 ? '+' + askenPoints : '—'}</td>
+            <td class="total">${p.score}</td>
+          </tr>
+        `;
+      }).join('');
 
       // Knappar
       const isHost = gameState.players.find(p => p.isMe)?.isHost;
