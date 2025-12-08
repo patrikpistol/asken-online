@@ -3,6 +3,9 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 
+// Redis för persistent lagring
+const { Redis } = require('@upstash/redis');
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -14,14 +17,103 @@ const io = new Server(server, {
   pingInterval: 25000
 });
 
+// ============================================
+// REDIS SETUP
+// ============================================
+
+let redis = null;
+const ROOM_EXPIRY = 3600; // Rum försvinner efter 1 timme utan aktivitet
+
+// Initiera Redis om miljövariabler finns
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+  console.log('Redis aktiverat - rum sparas persistent');
+} else {
+  console.log('Redis ej konfigurerat - rum sparas endast i minnet');
+}
+
+// Lokal cache för snabbare åtkomst
+const roomsCache = new Map();
+
+// Spara rum till Redis
+async function saveRoom(room) {
+  roomsCache.set(room.code, room);
+  
+  if (redis) {
+    try {
+      await redis.set(`room:${room.code}`, JSON.stringify(room), { ex: ROOM_EXPIRY });
+    } catch (err) {
+      console.error('Redis save error:', err.message);
+    }
+  }
+}
+
+// Hämta rum (först från cache, sedan från Redis)
+async function getRoom(code) {
+  if (!code) return null;
+  code = code.toUpperCase();
+  
+  // Kolla cache först
+  if (roomsCache.has(code)) {
+    return roomsCache.get(code);
+  }
+  
+  // Annars kolla Redis
+  if (redis) {
+    try {
+      const data = await redis.get(`room:${code}`);
+      if (data) {
+        const room = typeof data === 'string' ? JSON.parse(data) : data;
+        roomsCache.set(code, room);
+        return room;
+      }
+    } catch (err) {
+      console.error('Redis get error:', err.message);
+    }
+  }
+  
+  return null;
+}
+
+// Ta bort rum
+async function deleteRoom(code) {
+  roomsCache.delete(code);
+  
+  if (redis) {
+    try {
+      await redis.del(`room:${code}`);
+    } catch (err) {
+      console.error('Redis delete error:', err.message);
+    }
+  }
+}
+
+// Räkna antal rum
+async function countRooms() {
+  if (redis) {
+    try {
+      const keys = await redis.keys('room:*');
+      return keys.length;
+    } catch (err) {
+      return roomsCache.size;
+    }
+  }
+  return roomsCache.size;
+}
+
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Keepalive endpoint - förhindrar att Render sover
-app.get('/health', (req, res) => {
+// Keepalive endpoint
+app.get('/health', async (req, res) => {
+  const roomCount = await countRooms();
   res.status(200).json({ 
     status: 'ok', 
-    rooms: rooms.size,
+    rooms: roomCount,
+    redis: redis ? 'connected' : 'disabled',
     uptime: process.uptime()
   });
 });
@@ -84,12 +176,14 @@ function generateRoomCode() {
 // RUM-HANTERING
 // ============================================
 
-const rooms = new Map();
-
-function createRoom(hostId, hostName) {
+async function createRoom(hostId, hostName) {
   let code = generateRoomCode();
-  while (rooms.has(code)) {
+  
+  // Se till att koden är unik
+  let attempts = 0;
+  while (await getRoom(code) && attempts < 10) {
     code = generateRoomCode();
+    attempts++;
   }
   
   const room = {
@@ -102,7 +196,7 @@ function createRoom(hostId, hostName) {
       score: 0,
       connected: true
     }],
-    state: 'lobby', // lobby, playing, roundEnd
+    state: 'lobby',
     mode: 'quick',
     currentPlayerIndex: 0,
     dealerIndex: 0,
@@ -110,15 +204,12 @@ function createRoom(hostId, hostName) {
     askenHolderId: null,
     roundNumber: 1,
     roundEnded: false,
-    roundWinners: []
+    roundWinners: [],
+    lastActivity: Date.now()
   };
   
-  rooms.set(code, room);
+  await saveRoom(room);
   return room;
-}
-
-function getRoom(code) {
-  return rooms.get(code?.toUpperCase());
 }
 
 function canPlayCard(card, tableau) {
@@ -282,9 +373,9 @@ io.on('connection', (socket) => {
   let playerName = null;
   
   // Skapa rum
-  socket.on('createRoom', (name) => {
+  socket.on('createRoom', async (name) => {
     playerName = name;
-    const room = createRoom(socket.id, name);
+    const room = await createRoom(socket.id, name);
     currentRoom = room.code;
     socket.join(room.code);
     
@@ -293,8 +384,8 @@ io.on('connection', (socket) => {
   });
   
   // Gå med i rum
-  socket.on('joinRoom', ({ code, name }) => {
-    const room = getRoom(code);
+  socket.on('joinRoom', async ({ code, name }) => {
+    const room = await getRoom(code);
     
     if (!room) {
       socket.emit('error', { message: 'Rummet finns inte' });
@@ -327,14 +418,17 @@ io.on('connection', (socket) => {
       connected: true
     });
     
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
     socket.join(room.code);
     socket.emit('roomJoined', { code: room.code });
     emitRoomState(room);
   });
   
   // Återanslut till rum (efter disconnect)
-  socket.on('rejoinRoom', ({ code, name }) => {
-    const room = getRoom(code);
+  socket.on('rejoinRoom', async ({ code, name }) => {
+    const room = await getRoom(code);
     
     if (!room) {
       socket.emit('rejoinFailed', { message: 'Rummet finns inte längre' });
@@ -365,6 +459,9 @@ io.on('connection', (socket) => {
       playerName = name;
       currentRoom = room.code;
       
+      room.lastActivity = Date.now();
+      await saveRoom(room);
+      
       socket.join(room.code);
       socket.emit('rejoinSuccess', { code: room.code });
       emitRoomState(room);
@@ -383,6 +480,9 @@ io.on('connection', (socket) => {
           connected: true
         });
         
+        room.lastActivity = Date.now();
+        await saveRoom(room);
+        
         socket.join(room.code);
         socket.emit('rejoinSuccess', { code: room.code });
         emitRoomState(room);
@@ -398,8 +498,8 @@ io.on('connection', (socket) => {
   });
   
   // Starta spel
-  socket.on('startGame', (mode) => {
-    const room = getRoom(currentRoom);
+  socket.on('startGame', async (mode) => {
+    const room = await getRoom(currentRoom);
     if (!room || room.hostId !== socket.id) return;
     
     if (room.players.length < 3) {
@@ -410,12 +510,16 @@ io.on('connection', (socket) => {
     room.mode = mode || 'quick';
     room.dealerIndex = 0;
     dealCards(room);
+    
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
     emitRoomState(room);
   });
   
   // Välj kort
-  socket.on('selectCards', (cardIds) => {
-    const room = getRoom(currentRoom);
+  socket.on('selectCards', async (cardIds) => {
+    const room = await getRoom(currentRoom);
     if (!room || room.state !== 'playing' || room.roundEnded) return;
     
     const player = room.players.find(p => p.id === socket.id);
@@ -424,16 +528,14 @@ io.on('connection', (socket) => {
     const playerIndex = room.players.indexOf(player);
     if (playerIndex !== room.currentPlayerIndex) return;
     
-    // Validera att korten finns i handen
     const selectedCards = cardIds.map(id => player.hand.find(c => c.id === id)).filter(Boolean);
     
-    // Skicka tillbaka vilka kort som är valda (för att synka UI)
     socket.emit('cardsSelected', cardIds);
   });
   
   // Spela kort
-  socket.on('playCards', (cardIds) => {
-    const room = getRoom(currentRoom);
+  socket.on('playCards', async (cardIds) => {
+    const room = await getRoom(currentRoom);
     if (!room || room.state !== 'playing' || room.roundEnded) return;
     
     const player = room.players.find(p => p.id === socket.id);
@@ -478,12 +580,15 @@ io.on('connection', (socket) => {
       room.currentPlayerIndex = (room.currentPlayerIndex + 1) % room.players.length;
     }
     
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
     emitRoomState(room);
   });
   
   // Passa
-  socket.on('pass', () => {
-    const room = getRoom(currentRoom);
+  socket.on('pass', async () => {
+    const room = await getRoom(currentRoom);
     if (!room || room.state !== 'playing' || room.roundEnded) return;
     
     const player = room.players.find(p => p.id === socket.id);
@@ -502,23 +607,30 @@ io.on('connection', (socket) => {
     room.askenHolderId = player.id;
     room.currentPlayerIndex = (room.currentPlayerIndex + 1) % room.players.length;
     
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
     emitRoomState(room);
   });
   
   // Nästa runda
-  socket.on('nextRound', () => {
-    const room = getRoom(currentRoom);
+  socket.on('nextRound', async () => {
+    const room = await getRoom(currentRoom);
     if (!room || room.hostId !== socket.id) return;
     
     room.roundNumber++;
     room.dealerIndex = (room.dealerIndex + 1) % room.players.length;
     dealCards(room);
+    
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
     emitRoomState(room);
   });
   
   // Nytt spel
-  socket.on('newGame', () => {
-    const room = getRoom(currentRoom);
+  socket.on('newGame', async () => {
+    const room = await getRoom(currentRoom);
     if (!room || room.hostId !== socket.id) return;
     
     room.players.forEach(p => p.score = 0);
@@ -527,24 +639,64 @@ io.on('connection', (socket) => {
     room.roundEnded = false;
     room.roundWinners = [];
     
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
     emitRoomState(room);
   });
   
   // Lämna rum
-  socket.on('leaveRoom', () => {
-    leaveCurrentRoom();
+  socket.on('leaveRoom', async () => {
+    await leaveCurrentRoom();
   });
   
   // Frånkoppling
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     console.log('Spelare frånkopplad:', socket.id);
-    leaveCurrentRoom();
+    
+    // Markera spelaren som frånkopplad istället för att ta bort
+    if (currentRoom) {
+      const room = await getRoom(currentRoom);
+      if (room) {
+        const player = room.players.find(p => p.id === socket.id);
+        if (player) {
+          player.connected = false;
+          await saveRoom(room);
+          
+          // Vänta 30 sekunder innan vi faktiskt tar bort spelaren
+          setTimeout(async () => {
+            const roomNow = await getRoom(currentRoom);
+            if (roomNow) {
+              const playerNow = roomNow.players.find(p => p.name === player.name);
+              if (playerNow && !playerNow.connected) {
+                // Spelaren har inte återanslutit - ta bort
+                const playerIndex = roomNow.players.indexOf(playerNow);
+                if (playerIndex >= 0) {
+                  roomNow.players.splice(playerIndex, 1);
+                }
+                
+                if (roomNow.players.length === 0) {
+                  await deleteRoom(currentRoom);
+                  console.log(`Rum ${currentRoom} borttaget (tomt)`);
+                } else {
+                  if (roomNow.hostId === socket.id) {
+                    roomNow.hostId = roomNow.players[0].id;
+                  }
+                  await saveRoom(roomNow);
+                  emitRoomState(roomNow);
+                }
+              }
+            }
+          }, 30000);
+        }
+      }
+    }
   });
   
-  function leaveCurrentRoom() {
+  async function leaveCurrentRoom() {
     if (!currentRoom) return;
     
-    const room = getRoom(currentRoom);
+    const room = await getRoom(currentRoom);
     if (!room) return;
     
     const playerIndex = room.players.findIndex(p => p.id === socket.id);
@@ -555,12 +707,12 @@ io.on('connection', (socket) => {
     socket.leave(currentRoom);
     
     if (room.players.length === 0) {
-      rooms.delete(currentRoom);
+      await deleteRoom(currentRoom);
     } else {
-      // Om hosten lämnar, ge till nästa
       if (room.hostId === socket.id) {
         room.hostId = room.players[0].id;
       }
+      await saveRoom(room);
       emitRoomState(room);
     }
     
@@ -579,7 +731,6 @@ io.on('connection', (socket) => {
   }
   
   function emitRoomState(room) {
-    // Skicka personlig state till varje spelare
     for (const player of room.players) {
       const socketId = player.id;
       const playerSocket = io.sockets.sockets.get(socketId);
@@ -587,7 +738,6 @@ io.on('connection', (socket) => {
       
       const isGameOver = room.mode === 'quick' || room.players.some(p => p.score >= 500);
       
-      // Bygg state med dold information för andra spelare
       const state = {
         code: room.code,
         hostId: room.hostId,
@@ -607,18 +757,17 @@ io.on('connection', (socket) => {
           name: p.name,
           cardCount: p.hand.length,
           score: p.score,
-          // Visa bara egen hand
           hand: p.id === player.id ? p.hand : null,
           isMe: p.id === player.id,
           isCurrent: index === room.currentPlayerIndex,
           isHost: p.id === room.hostId,
           isDealer: index === room.dealerIndex,
           hasAsken: p.id === room.askenHolderId,
-          isWinner: room.roundWinners.some(w => w.id === p.id)
+          isWinner: room.roundWinners.some(w => w.id === p.id),
+          connected: p.connected
         }))
       };
       
-      // Lägg till spelbar-info för nuvarande spelare
       if (player.id === room.players[room.currentPlayerIndex]?.id && room.state === 'playing' && !room.roundEnded) {
         state.playableCardIds = player.hand
           .filter(c => canBePartOfSequence(c, player.hand, room.tableau))
