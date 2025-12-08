@@ -22,7 +22,7 @@ const io = new Server(server, {
 // ============================================
 
 let redis = null;
-const ROOM_EXPIRY = 3600; // Rum försvinner efter 1 timme utan aktivitet
+const ROOM_EXPIRY = 86400; // Rum försvinner efter 24 timmar utan aktivitet
 
 // Initiera Redis om miljövariabler finns
 if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
