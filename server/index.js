@@ -722,7 +722,21 @@ io.on('connection', (socket) => {
   function endRound(room) {
     room.roundEnded = true;
     
-    const scores = calculateScores(room);
+    // Beräkna och spara rundpoäng för varje spelare
+    room.roundScores = room.players.map(player => {
+      const cardPoints = player.hand.reduce((sum, c) => sum + getCardPoints(c), 0);
+      const askenPoints = player.id === room.askenHolderId ? 50 : 0;
+      const roundTotal = cardPoints + askenPoints;
+      player.score += roundTotal;
+      
+      return {
+        playerId: player.id,
+        name: player.name,
+        cardPoints,
+        askenPoints,
+        roundTotal
+      };
+    });
     
     const lowestScore = Math.min(...room.players.map(p => p.score));
     room.roundWinners = room.players.filter(p => p.score === lowestScore);
@@ -750,6 +764,7 @@ io.on('connection', (socket) => {
         askenHolderId: room.askenHolderId,
         roundEnded: room.roundEnded,
         roundWinners: room.roundWinners.map(w => ({ id: w.id, name: w.name })),
+        roundScores: room.roundScores || null,
         isGameOver,
         myId: player.id,
         players: room.players.map((p, index) => ({
