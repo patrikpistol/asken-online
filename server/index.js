@@ -536,22 +536,49 @@ io.on('connection', (socket) => {
   // Spela kort
   socket.on('playCards', async (cardIds) => {
     const room = await getRoom(currentRoom);
-    if (!room || room.state !== 'playing' || room.roundEnded) return;
+    if (!room) {
+      socket.emit('error', { message: 'Rummet finns inte längre' });
+      return;
+    }
+    if (room.state !== 'playing') {
+      socket.emit('error', { message: 'Spelet är inte igång' });
+      return;
+    }
+    if (room.roundEnded) {
+      socket.emit('error', { message: 'Rundan är redan slut' });
+      return;
+    }
     
     const player = room.players.find(p => p.id === socket.id);
-    if (!player) return;
+    if (!player) {
+      socket.emit('error', { message: 'Du är inte med i spelet' });
+      return;
+    }
     
     const playerIndex = room.players.indexOf(player);
-    if (playerIndex !== room.currentPlayerIndex) return;
+    if (playerIndex !== room.currentPlayerIndex) {
+      socket.emit('error', { message: 'Det är inte din tur' });
+      return;
+    }
     
     const selectedCards = cardIds.map(id => player.hand.find(c => c.id === id)).filter(Boolean);
-    if (selectedCards.length === 0) return;
+    if (selectedCards.length === 0) {
+      socket.emit('error', { message: 'Inga giltiga kort valda' });
+      return;
+    }
+    
+    console.log('Försöker spela kort:', cardIds);
+    console.log('Tableau:', JSON.stringify(room.tableau));
+    console.log('Valda kort:', selectedCards.map(c => `${c.suit}-${c.rank}`));
     
     const orderedCards = getPlayableOrder(selectedCards, room.tableau);
     if (!orderedCards) {
-      socket.emit('error', { message: 'Ogiltigt val av kort' });
+      console.log('getPlayableOrder returnerade null');
+      socket.emit('error', { message: 'Korten kan inte spelas i denna ordning' });
       return;
     }
+    
+    console.log('Ordnade kort:', orderedCards.map(c => `${c.suit}-${c.rank}`));
     
     // Ta bort kort från hand
     for (const card of orderedCards) {
