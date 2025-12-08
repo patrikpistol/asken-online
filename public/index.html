@@ -160,6 +160,22 @@
       font-size: 0.9rem;
     }
 
+    .error-msg.game-error {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 12px 24px;
+      animation: shake 0.5s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(-50%); }
+      20%, 60% { transform: translateX(calc(-50% - 10px)); }
+      40%, 80% { transform: translateX(calc(-50% + 10px)); }
+    }
+
     /* ============================================
        LOBBY (väntar på spelare)
        ============================================ */
@@ -914,6 +930,7 @@
 
     <!-- Spel-skärm -->
     <div class="screen" id="gameScreen">
+      <div id="gameError" class="error-msg game-error" style="display: none;"></div>
       <div class="tableau-container">
         <div class="tableau-title" id="tableauTitle">RUNDA 1 • INGEN HAR ASKEN</div>
         <div class="tableau" id="tableau"></div>
@@ -1095,9 +1112,19 @@
     }
 
     function showError(message) {
-      const errorEl = document.getElementById('menuError');
+      // Visa på spelskärmen om vi är där, annars på menyn
+      const gameScreen = document.getElementById('gameScreen');
+      const isInGame = gameScreen.classList.contains('active');
+      
+      const errorEl = document.getElementById(isInGame ? 'gameError' : 'menuError');
       errorEl.textContent = message;
       errorEl.style.display = 'block';
+      
+      // Återställ animation
+      errorEl.style.animation = 'none';
+      errorEl.offsetHeight; // Trigger reflow
+      errorEl.style.animation = null;
+      
       setTimeout(() => {
         errorEl.style.display = 'none';
       }, 4000);
@@ -1189,8 +1216,101 @@
 
     function playCards() {
       if (selectedCardIds.length === 0) return;
+      
+      console.log('Försöker spela kort:', selectedCardIds);
+      console.log('Nuvarande tableau:', gameState.tableau);
+      
+      // Validera på klientsidan först
+      if (!validateSelectedCards()) {
+        console.log('Klient-validering misslyckades');
+        showError('Ogiltigt val - korten kan inte spelas tillsammans');
+        return;
+      }
+      
+      console.log('Klient-validering OK, skickar till server');
       socket.emit('playCards', selectedCardIds);
-      selectedCardIds = [];
+      // Rensa INTE här - vänta på gameState från servern
+    }
+    
+    // Klient-validering av valda kort
+    function validateSelectedCards() {
+      if (selectedCardIds.length === 0) return false;
+      if (!gameState || !gameState.tableau) return false;
+      
+      const me = gameState.players.find(p => p.isMe);
+      if (!me || !me.hand) return false;
+      
+      const selectedCards = selectedCardIds
+        .map(id => me.hand.find(c => c.id === id))
+        .filter(Boolean);
+      
+      if (selectedCards.length !== selectedCardIds.length) return false;
+      
+      console.log('Validerar kort:', selectedCards.map(c => `${c.suit}-${c.rank}`));
+      
+      // Simulera getPlayableOrder
+      const simTableau = {
+        spades: gameState.tableau.spades ? { ...gameState.tableau.spades } : null,
+        hearts: gameState.tableau.hearts ? { ...gameState.tableau.hearts } : null,
+        clubs: gameState.tableau.clubs ? { ...gameState.tableau.clubs } : null,
+        diamonds: gameState.tableau.diamonds ? { ...gameState.tableau.diamonds } : null
+      };
+      
+      console.log('Startar med tableau:', JSON.stringify(simTableau));
+      
+      const remaining = [...selectedCards];
+      
+      while (remaining.length > 0) {
+        let foundPlayable = false;
+        
+        for (let i = 0; i < remaining.length; i++) {
+          const card = remaining[i];
+          const canPlay = canPlayCardClient(card, simTableau);
+          console.log(`Kan ${card.suit}-${card.rank} spelas?`, canPlay);
+          
+          if (canPlay) {
+            remaining.splice(i, 1);
+            
+            if (!simTableau[card.suit]) {
+              simTableau[card.suit] = { low: card.rank, high: card.rank };
+            } else {
+              if (card.rank < simTableau[card.suit].low) {
+                simTableau[card.suit].low = card.rank;
+              }
+              if (card.rank > simTableau[card.suit].high) {
+                simTableau[card.suit].high = card.rank;
+              }
+            }
+            
+            console.log('Uppdaterat tableau:', JSON.stringify(simTableau));
+            foundPlayable = true;
+            break;
+          }
+        }
+        
+        if (!foundPlayable) {
+          console.log('Kunde inte hitta spelbart kort, kvar:', remaining.map(c => `${c.suit}-${c.rank}`));
+          return false;
+        }
+      }
+      
+      console.log('Alla kort kan spelas!');
+      return true;
+    }
+    
+    function canPlayCardClient(card, tableau) {
+      const anyCardPlayed = Object.values(tableau).some(s => s !== null);
+      if (!anyCardPlayed) {
+        return card.suit === 'spades' && card.rank === 7;
+      }
+      
+      const suitState = tableau[card.suit];
+      
+      if (!suitState) {
+        return card.rank === 7;
+      }
+      
+      return card.rank === suitState.low - 1 || card.rank === suitState.high + 1;
     }
 
     function pass() {
@@ -1379,7 +1499,7 @@
           ${player.isMe && player.hand ? renderOwnHand(player) : renderHiddenHand(player.cardCount)}
           ${player.isMe && player.isCurrent && !gameState.roundEnded ? `
             <div class="action-buttons">
-              <button class="action-btn play" onclick="playCards()" ${selectedCardIds.length === 0 ? 'disabled' : ''}>
+              <button class="action-btn play" onclick="playCards()" ${selectedCardIds.length === 0 || !validateSelectedCards() ? 'disabled' : ''}>
                 Spela ${selectedCardIds.length > 0 ? '(' + selectedCardIds.length + ' kort)' : ''}
               </button>
               <button class="action-btn pass" onclick="pass()" ${!canPass ? 'disabled' : ''}>
