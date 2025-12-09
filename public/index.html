@@ -261,6 +261,38 @@
       font-size: 0.75rem;
       font-weight: 600;
     }
+    
+    .player-list-item.is-bot {
+      border: 1px dashed rgba(255, 255, 255, 0.3);
+    }
+    
+    .player-list-item.is-bot .player-avatar {
+      background: #6c5ce7;
+      font-size: 1.3rem;
+    }
+    
+    .remove-bot-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(224, 82, 82, 0.2);
+      color: var(--red);
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    
+    .remove-bot-btn:hover {
+      background: rgba(224, 82, 82, 0.4);
+    }
+    
+    .add-bot-btn {
+      margin-bottom: 16px;
+    }
 
     .waiting-text {
       color: var(--text-dim);
@@ -835,24 +867,6 @@
       background: rgba(255,255,255,0.1);
       color: white;
     }
-    
-    .next-round-btn {
-      padding: 12px 24px;
-      border-radius: 8px;
-      border: none;
-      background: var(--gold);
-      color: #1a1a2e;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-    }
-    
-    .next-round-btn:hover {
-      background: #ffd700;
-      transform: scale(1.02);
-    }
 
     /* ============================================
        RESPONSIV
@@ -930,6 +944,7 @@
         <div class="room-code-label">Rumskod</div>
         <div class="room-code" id="displayRoomCode">XXXX</div>
         <div class="player-list" id="lobbyPlayerList"></div>
+        <div id="botButtonContainer"></div>
         <div class="waiting-text" id="waitingText">Minst 3 spelare krävs för att starta</div>
         
         <div id="hostControls" style="display: none;">
@@ -1211,6 +1226,18 @@
       currentPlayerName = null;
       showScreen('menuScreen');
     }
+    
+    function addBot() {
+      if (socket) {
+        socket.emit('addBot');
+      }
+    }
+    
+    function removeBot(botId) {
+      if (socket) {
+        socket.emit('removeBot', botId);
+      }
+    }
 
     function setMode(mode) {
       selectedMode = mode;
@@ -1395,22 +1422,36 @@
 
     function renderLobby() {
       const list = document.getElementById('lobbyPlayerList');
+      const isHost = gameState.players.find(p => p.isMe)?.isHost;
+      
       list.innerHTML = gameState.players.map(p => `
-        <div class="player-list-item ${p.isMe ? 'is-me' : ''}">
-          <div class="player-avatar">${p.name.charAt(0).toUpperCase()}</div>
+        <div class="player-list-item ${p.isMe ? 'is-me' : ''} ${p.isBot ? 'is-bot' : ''}">
+          <div class="player-avatar">${p.isBot ? '🤖' : p.name.charAt(0).toUpperCase()}</div>
           <div class="player-info">
             <div class="name">${p.name}${p.isMe ? ' (du)' : ''}</div>
-            <div class="role">${p.isHost ? 'Värd' : 'Spelare'}</div>
+            <div class="role">${p.isHost ? 'Värd' : (p.isBot ? 'Robot' : 'Spelare')}</div>
           </div>
           ${p.isHost ? '<span class="host-badge">VÄRD</span>' : ''}
+          ${p.isBot && isHost ? `<button class="remove-bot-btn" onclick="removeBot('${p.id}')">✕</button>` : ''}
         </div>
       `).join('');
 
-      const isHost = gameState.players.find(p => p.isMe)?.isHost;
       const canStart = gameState.players.length >= 3;
+      const canAddBot = gameState.players.length < 7;
       
       document.getElementById('hostControls').style.display = isHost ? 'block' : 'none';
       document.getElementById('startGameBtn').disabled = !canStart;
+      
+      // Uppdatera robot-knappen
+      const botBtnContainer = document.getElementById('botButtonContainer');
+      if (botBtnContainer) {
+        botBtnContainer.innerHTML = isHost && canAddBot ? `
+          <button class="btn btn-secondary add-bot-btn" onclick="addBot()">
+            🤖 Lägg till robot
+          </button>
+        ` : '';
+      }
+      
       document.getElementById('waitingText').textContent = canStart 
         ? `${gameState.players.length} spelare redo`
         : `Minst 3 spelare krävs (${gameState.players.length}/3)`;
@@ -1537,7 +1578,7 @@
 
       for (const player of sortedPlayers) {
         const section = document.createElement('div');
-        section.className = `player-section ${player.isCurrent && !gameState.roundEnded ? 'current-player' : ''} ${player.isMe ? 'is-me' : ''} ${player.isWinner ? 'winner' : ''}`;
+        section.className = `player-section ${player.isCurrent && !gameState.roundEnded ? 'current-player' : ''} ${player.isMe ? 'is-me' : ''} ${player.isWinner ? 'winner' : ''} ${player.isBot ? 'is-bot' : ''}`;
 
         const hasPlayable = gameState.playableCardIds?.length > 0;
         const canPass = player.isCurrent && player.isMe && !hasPlayable && !gameState.roundEnded;
@@ -1545,7 +1586,7 @@
         section.innerHTML = `
           <div class="player-header">
             <div class="player-name">
-              ${player.name}${player.isMe ? ' (du)' : ''}
+              ${player.isBot ? '🤖 ' : ''}${player.name}${player.isMe ? ' (du)' : ''}
               ${player.isDealer ? '<span class="dealer-badge">🎴 Gav</span>' : ''}
               ${player.isWinner ? '<span class="winner-badge">🏆 Vinnare!</span>' : ''}
               ${player.isCurrent && !gameState.roundEnded ? '<span class="player-badge">Spelar</span>' : ''}
