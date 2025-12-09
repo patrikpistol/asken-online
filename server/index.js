@@ -793,8 +793,12 @@ io.on('connection', (socket) => {
       };
     });
     
-    const lowestScore = Math.min(...room.players.map(p => p.score));
-    room.roundWinners = room.players.filter(p => p.score === lowestScore);
+    // Rundvinnare = lägst poäng DENNA RUNDA (inte totalt)
+    const lowestRoundScore = Math.min(...room.roundScores.map(rs => rs.roundTotal));
+    const roundWinnerIds = room.roundScores
+      .filter(rs => rs.roundTotal === lowestRoundScore)
+      .map(rs => rs.playerId);
+    room.roundWinners = room.players.filter(p => roundWinnerIds.includes(p.id));
     
     room.state = 'roundEnd';
   }
