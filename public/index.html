@@ -364,6 +364,40 @@
       color: var(--text-dim);
       margin-top: 4px;
     }
+    
+    .difficulty-label {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    
+    .difficulty-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .difficulty-btn {
+      flex: 1;
+      padding: 10px 12px;
+      background: var(--bg-dark);
+      border: 2px solid #404040;
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    
+    .difficulty-btn.active {
+      border-color: var(--accent);
+      background: rgba(230, 184, 74, 0.1);
+    }
+    
+    .difficulty-btn:hover:not(.active) {
+      border-color: #606060;
+    }
 
     /* ============================================
        SPELSKÄRM
@@ -1013,6 +1047,20 @@
         </div>
         <div class="player-list" id="lobbyPlayerList"></div>
         <div id="botButtonContainer"></div>
+        <div id="botDifficultyContainer" style="display: none;">
+          <div class="difficulty-label">Robotarnas intelligens</div>
+          <div class="difficulty-selector">
+            <button class="difficulty-btn active" data-difficulty="dumb" onclick="setBotDifficulty('dumb')">
+              Dum
+            </button>
+            <button class="difficulty-btn" data-difficulty="medium" onclick="setBotDifficulty('medium')">
+              Medel
+            </button>
+            <button class="difficulty-btn" data-difficulty="smart" onclick="setBotDifficulty('smart')">
+              Smart
+            </button>
+          </div>
+        </div>
         <div class="waiting-text" id="waitingText">Minst 3 spelare krävs för att starta</div>
         
         <div id="hostControls" style="display: none;">
@@ -1341,6 +1389,16 @@
         }, 2000);
       });
     }
+    
+    function setBotDifficulty(difficulty) {
+      if (socket) {
+        socket.emit('setBotDifficulty', difficulty);
+      }
+      // Uppdatera knapparna lokalt direkt för snabbare respons
+      document.querySelectorAll('.difficulty-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.difficulty === difficulty);
+      });
+    }
 
     function setMode(mode) {
       selectedMode = mode;
@@ -1526,6 +1584,7 @@
     function renderLobby() {
       const list = document.getElementById('lobbyPlayerList');
       const isHost = gameState.players.find(p => p.isMe)?.isHost;
+      const hasBots = gameState.hasBots || gameState.players.some(p => p.isBot);
       
       list.innerHTML = gameState.players.map(p => `
         <div class="player-list-item ${p.isMe ? 'is-me' : ''} ${p.isBot ? 'is-bot' : ''}">
@@ -1553,6 +1612,18 @@
             🤖 Lägg till robot
           </button>
         ` : '';
+      }
+      
+      // Visa/göm svårighetsgrad för robotar
+      const difficultyContainer = document.getElementById('botDifficultyContainer');
+      if (difficultyContainer) {
+        difficultyContainer.style.display = (isHost && hasBots) ? 'block' : 'none';
+        
+        // Uppdatera aktiv knapp
+        const currentDifficulty = gameState.botDifficulty || 'dumb';
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.difficulty === currentDifficulty);
+        });
       }
       
       document.getElementById('waitingText').textContent = canStart 
