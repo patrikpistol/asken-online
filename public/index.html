@@ -166,8 +166,13 @@
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
-      padding: 12px 24px;
+      padding: 14px 28px;
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid var(--red);
+      color: #ff6b6b;
+      font-weight: 600;
       animation: shake 0.5s ease-in-out;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
 
     @keyframes shake {
@@ -810,6 +815,7 @@
     .game-footer {
       display: flex;
       justify-content: center;
+      gap: 16px;
       margin-top: 24px;
     }
 
@@ -828,6 +834,24 @@
     .quit-btn:hover {
       background: rgba(255,255,255,0.1);
       color: white;
+    }
+    
+    .next-round-btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      background: var(--gold);
+      color: #1a1a2e;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    
+    .next-round-btn:hover {
+      background: #ffd700;
+      transform: scale(1.02);
     }
 
     /* ============================================
@@ -938,7 +962,7 @@
 
       <div class="players-area" id="playersArea"></div>
 
-      <div class="game-footer">
+      <div class="game-footer" id="gameFooter">
         <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
       </div>
     </div>
@@ -1070,6 +1094,22 @@
       socket.on('error', ({ message }) => {
         showError(message);
       });
+      
+      // När spelet avbryts av en annan spelare
+      socket.on('gameEnded', ({ playerName, reason }) => {
+        document.getElementById('modal').classList.remove('visible');
+        gameState = null;
+        selectedCardIds = [];
+        currentRoomCode = null;
+        currentPlayerName = null;
+        showScreen('menuScreen');
+        showError(`Spelet avslutades: ${playerName} har lämnat spelet`);
+      });
+      
+      // När värden startar nästa runda - stäng modal för alla
+      socket.on('closeModal', () => {
+        document.getElementById('modal').classList.remove('visible');
+      });
 
       socket.on('disconnect', (reason) => {
         console.log('Frånkopplad från server:', reason);
@@ -1127,7 +1167,7 @@
       
       setTimeout(() => {
         errorEl.style.display = 'none';
-      }, 4000);
+      }, 6000);
     }
 
     // ============================================
@@ -1380,6 +1420,27 @@
       renderTableau();
       renderPlayers();
       renderInfo();
+      renderGameFooter();
+    }
+    
+    function renderGameFooter() {
+      const footer = document.getElementById('gameFooter');
+      const isHost = gameState.players.find(p => p.isMe)?.isHost;
+      const isRoundEnd = gameState.roundEnded || gameState.state === 'roundEnd';
+      const isGameOver = gameState.isGameOver;
+      
+      if (isHost && isRoundEnd) {
+        footer.innerHTML = `
+          <button class="next-round-btn" onclick="${isGameOver ? 'newGame()' : 'nextRound()'}">
+            ${isGameOver ? '🎮 Nytt spel' : '➡️ Nästa runda'}
+          </button>
+          <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
+        `;
+      } else {
+        footer.innerHTML = `
+          <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
+        `;
+      }
     }
 
     function renderTableau() {
