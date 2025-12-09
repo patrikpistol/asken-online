@@ -378,7 +378,7 @@ function getPlayableOrder(selectedCards, tableau) {
 // ROBOT AI
 // ============================================
 
-function getBotMove(player, tableau) {
+function getBotMove(player, tableau, difficulty = 'dumb', allPlayers = []) {
   // Hitta alla spelbara kort
   const playableCards = player.hand.filter(c => canBePartOfSequence(c, player.hand, tableau));
   
@@ -386,63 +386,154 @@ function getBotMove(player, tableau) {
     return { action: 'pass' };
   }
   
-  // Strategi: Försök spela så många kort som möjligt i ett drag
-  // Prioritera att bli av med höga poängkort
+  // DUM: Spelar slumpmässigt ett spelbart kort
+  if (difficulty === 'dumb') {
+    // Välj ett slumpmässigt spelbart kort
+    const randomCard = playableCards[Math.floor(Math.random() * playableCards.length)];
+    const ordered = getPlayableOrder([randomCard], tableau);
+    if (ordered) {
+      return { action: 'play', cards: ordered };
+    }
+    return { action: 'pass' };
+  }
   
-  // Gruppera spelbara kort per färg
+  // MEDEL & SMART: Gruppera spelbara kort per färg
   const bySuit = {};
   for (const card of playableCards) {
     if (!bySuit[card.suit]) bySuit[card.suit] = [];
     bySuit[card.suit].push(card);
   }
   
-  // Hitta den bästa sekvensen att spela
-  let bestSequence = [];
-  let bestScore = -1;
+  // Hitta alla möjliga sekvenser
+  let allSequences = [];
   
   for (const suit of Object.keys(bySuit)) {
     const suitCards = bySuit[suit].sort((a, b) => a.rank - b.rank);
     
-    // Testa olika kombinationer av kort i denna färg
     for (let i = 0; i < suitCards.length; i++) {
       for (let j = i; j < suitCards.length; j++) {
         const testCards = suitCards.slice(i, j + 1);
         const ordered = getPlayableOrder(testCards, tableau);
         
         if (ordered && ordered.length > 0) {
-          // Beräkna poängvärde av korten (vi vill bli av med höga poäng)
-          const points = ordered.reduce((sum, c) => sum + getCardPoints(c), 0);
-          const score = ordered.length * 100 + points; // Prioritera antal kort, sedan poäng
-          
-          if (score > bestScore) {
-            bestScore = score;
-            bestSequence = ordered;
-          }
+          allSequences.push(ordered);
         }
       }
     }
   }
   
-  // Testa även att spela kort från olika färger om det är möjligt
-  // (t.ex. flera 7:or, eller kort som bygger på varandra)
+  // Lägg till möjligheten att spela flera färger samtidigt
   if (playableCards.length > 1) {
     const ordered = getPlayableOrder(playableCards, tableau);
-    if (ordered && ordered.length > bestSequence.length) {
-      bestSequence = ordered;
+    if (ordered && ordered.length > 1) {
+      allSequences.push(ordered);
     }
   }
   
-  if (bestSequence.length > 0) {
+  if (allSequences.length === 0) {
+    const singleCard = getPlayableOrder([playableCards[0]], tableau);
+    if (singleCard) {
+      return { action: 'play', cards: singleCard };
+    }
+    return { action: 'pass' };
+  }
+  
+  // MEDEL: Prioritera att bli av med många kort och höga poäng
+  if (difficulty === 'medium') {
+    let bestSequence = [];
+    let bestScore = -1;
+    
+    for (const seq of allSequences) {
+      const points = seq.reduce((sum, c) => sum + getCardPoints(c), 0);
+      // Prioritera: antal kort * 100 + poängvärde
+      const score = seq.length * 100 + points;
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestSequence = seq;
+      }
+    }
+    
     return { action: 'play', cards: bestSequence };
   }
   
-  // Fallback: spela första spelbara kortet
-  const singleCard = getPlayableOrder([playableCards[0]], tableau);
-  if (singleCard) {
-    return { action: 'play', cards: singleCard };
+  // SMART: Avancerad strategi
+  if (difficulty === 'smart') {
+    let bestSequence = [];
+    let bestScore = -Infinity;
+    
+    for (const seq of allSequences) {
+      let score = 0;
+      
+      // Poäng för att bli av med kort
+      const points = seq.reduce((sum, c) => sum + getCardPoints(c), 0);
+      score += points * 2;
+      
+      // Bonus för att spela många kort
+      score += seq.length * 50;
+      
+      // Simulera hur spelplanen ser ut efter draget
+      const newTableau = JSON.parse(JSON.stringify(tableau));
+      for (const card of seq) {
+        if (!newTableau[card.suit]) {
+          newTableau[card.suit] = { low: card.rank, high: card.rank };
+        } else {
+          if (card.rank < newTableau[card.suit].low) {
+            newTableau[card.suit].low = card.rank;
+          }
+          if (card.rank > newTableau[card.suit].high) {
+            newTableau[card.suit].high = card.rank;
+          }
+        }
+      }
+      
+      // Beräkna hur många kort jag kan spela efter detta drag
+      const remainingHand = player.hand.filter(c => !seq.some(s => s.id === c.id));
+      const futurePlayable = remainingHand.filter(c => canBePartOfSequence(c, remainingHand, newTableau));
+      score += futurePlayable.length * 30;
+      
+      // Straffa om vi öppnar upp för motståndare (ändpunkter nära deras möjliga kort)
+      // Bonus om vi spelar kort som ligger "i mitten" av vår hand
+      for (const card of seq) {
+        // Bonus för att spela ess eller kungar (slutar kedjan)
+        if (card.rank === 1 || card.rank === 13) {
+          score += 40;
+        }
+        
+        // Bonus för att behålla kort som blockerar (6:or och 8:or)
+        const isBlockingCard = card.rank === 6 || card.rank === 8;
+        if (isBlockingCard) {
+          // Kolla om vi har kort på andra sidan
+          const hasLower = remainingHand.some(c => c.suit === card.suit && c.rank < card.rank);
+          const hasHigher = remainingHand.some(c => c.suit === card.suit && c.rank > card.rank);
+          if (hasLower && hasHigher) {
+            score -= 20; // Straffa att spela blockerande kort om vi har kort på båda sidor
+          }
+        }
+      }
+      
+      // Bonus för att tömma en hel färg
+      const suitCounts = {};
+      for (const c of remainingHand) {
+        suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1;
+      }
+      for (const card of seq) {
+        if (!suitCounts[card.suit] || suitCounts[card.suit] === 0) {
+          score += 25; // Bonus för att bli av med en hel färg
+        }
+      }
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestSequence = seq;
+      }
+    }
+    
+    return { action: 'play', cards: bestSequence };
   }
   
-  return { action: 'pass' };
+  // Fallback
+  return { action: 'play', cards: allSequences[0] };
 }
 
 async function executeBotTurn(room) {
@@ -462,7 +553,8 @@ async function executeBotTurn(room) {
   const player = freshRoom.players[freshRoom.currentPlayerIndex];
   if (!player || !player.isBot) return;
   
-  const move = getBotMove(player, freshRoom.tableau);
+  const difficulty = freshRoom.botDifficulty || 'dumb';
+  const move = getBotMove(player, freshRoom.tableau, difficulty, freshRoom.players);
   
   if (move.action === 'play' && move.cards.length > 0) {
     // Spara vilka kort som spelades (för att markera på spelplanen)
@@ -553,6 +645,7 @@ function emitRoomStateToAll(room) {
     if (!playerSocket) continue;
     
     const isGameOver = room.mode === 'quick' || room.players.some(p => p.score >= 500);
+    const hasBots = room.players.some(p => p.isBot);
     
     const state = {
       code: room.code,
@@ -569,6 +662,8 @@ function emitRoomStateToAll(room) {
       roundWinners: room.roundWinners.map(w => ({ id: w.id, name: w.name })),
       roundScores: room.roundScores || null,
       lastPlayedCards: room.lastPlayedCards || [],
+      botDifficulty: room.botDifficulty || 'dumb',
+      hasBots,
       isGameOver,
       myId: player.id,
       players: room.players.map((p, index) => ({
@@ -841,6 +936,30 @@ io.on('connection', (socket) => {
     
     emitRoomState(room);
     console.log(`Robot ${botName} borttagen från rum ${room.code}`);
+  });
+  
+  // Sätt robotsvårighetsgrad
+  socket.on('setBotDifficulty', async (difficulty) => {
+    const room = await getRoom(currentRoom);
+    if (!room || room.hostId !== socket.id) return;
+    
+    if (room.state !== 'lobby') {
+      socket.emit('error', { message: 'Kan bara ändra svårighetsgrad i lobbyn' });
+      return;
+    }
+    
+    const validDifficulties = ['dumb', 'medium', 'smart'];
+    if (!validDifficulties.includes(difficulty)) {
+      socket.emit('error', { message: 'Ogiltig svårighetsgrad' });
+      return;
+    }
+    
+    room.botDifficulty = difficulty;
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
+    emitRoomState(room);
+    console.log(`Robotsvårighetsgrad satt till ${difficulty} i rum ${room.code}`);
   });
   
   // Starta spel
@@ -1202,6 +1321,7 @@ io.on('connection', (socket) => {
       if (!playerSocket) continue;
       
       const isGameOver = room.mode === 'quick' || room.players.some(p => p.score >= 500);
+      const hasBots = room.players.some(p => p.isBot);
       
       const state = {
         code: room.code,
@@ -1218,6 +1338,8 @@ io.on('connection', (socket) => {
         roundWinners: room.roundWinners.map(w => ({ id: w.id, name: w.name })),
         roundScores: room.roundScores || null,
         lastPlayedCards: room.lastPlayedCards || [],
+        botDifficulty: room.botDifficulty || 'dumb',
+        hasBots,
         isGameOver,
         myId: player.id,
         players: room.players.map((p, index) => ({
