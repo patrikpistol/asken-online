@@ -74,6 +74,13 @@
     .menu-card h1 {
       margin-bottom: 24px;
     }
+    
+    .game-logo {
+      max-width: 200px;
+      height: auto;
+      display: block;
+      margin: 0 auto 24px auto;
+    }
 
     .form-group {
       margin-bottom: 20px;
@@ -979,7 +986,7 @@
     <!-- Meny-skärm -->
     <div class="screen active" id="menuScreen">
       <div class="menu-card">
-        <h1>🃏 ASKEN</h1>
+        <img src="gfx/asken_logo.webp" alt="ASKEN" class="game-logo">
         <div id="menuError" class="error-msg" style="display: none;"></div>
         <div class="form-group">
           <label>Ditt namn</label>
@@ -1688,8 +1695,8 @@
           <div class="player-header">
             <div class="player-name">
               ${player.isBot ? '🤖 ' : ''}${player.name}${player.isMe ? ' (du)' : ''}
-              ${player.isDealer ? '<span class="dealer-badge">🎴 Gav</span>' : ''}
-              ${player.isStarter ? '<span class="starter-badge">♠7 Började</span>' : ''}
+              ${player.isDealer ? '<span class="dealer-badge">Gav</span>' : ''}
+              ${player.isStarter ? '<span class="starter-badge">Började</span>' : ''}
               ${player.isWinner ? '<span class="winner-badge">🏆 Vinnare!</span>' : ''}
               ${player.isCurrent && !gameState.roundEnded ? '<span class="player-badge">Spelar</span>' : ''}
               ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
