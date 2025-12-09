@@ -18,6 +18,42 @@ const io = new Server(server, {
 });
 
 // ============================================
+// ROBOTNAMN
+// ============================================
+
+const BOT_NAMES = [
+  'Boten Anna',
+  'R2-D2',
+  'Hal',
+  'Mathilda Järndotter',
+  'C-3PO',
+  'Ash Hyperdyne 120-A/2',
+  'Bishop',
+  'Chappie',
+  'M3GAN',
+  'Replikant',
+  'Gort',
+  'Dalek',
+  'Bender',
+  'Ava',
+  'Data',
+  'T-800 Model 101',
+  'T-1000',
+  'Wall-E',
+  'Mother'
+];
+
+function getRandomBotName(existingNames) {
+  const availableNames = BOT_NAMES.filter(name => 
+    !existingNames.some(n => n.toLowerCase() === name.toLowerCase())
+  );
+  if (availableNames.length === 0) {
+    return `Bot-${Math.floor(Math.random() * 1000)}`;
+  }
+  return availableNames[Math.floor(Math.random() * availableNames.length)];
+}
+
+// ============================================
 // REDIS SETUP
 // ============================================
 
@@ -316,6 +352,225 @@ function getPlayableOrder(selectedCards, tableau) {
   return ordered;
 }
 
+// ============================================
+// ROBOT AI
+// ============================================
+
+function getBotMove(player, tableau) {
+  // Hitta alla spelbara kort
+  const playableCards = player.hand.filter(c => canBePartOfSequence(c, player.hand, tableau));
+  
+  if (playableCards.length === 0) {
+    return { action: 'pass' };
+  }
+  
+  // Strategi: Försök spela så många kort som möjligt i ett drag
+  // Prioritera att bli av med höga poängkort
+  
+  // Gruppera spelbara kort per färg
+  const bySuit = {};
+  for (const card of playableCards) {
+    if (!bySuit[card.suit]) bySuit[card.suit] = [];
+    bySuit[card.suit].push(card);
+  }
+  
+  // Hitta den bästa sekvensen att spela
+  let bestSequence = [];
+  let bestScore = -1;
+  
+  for (const suit of Object.keys(bySuit)) {
+    const suitCards = bySuit[suit].sort((a, b) => a.rank - b.rank);
+    
+    // Testa olika kombinationer av kort i denna färg
+    for (let i = 0; i < suitCards.length; i++) {
+      for (let j = i; j < suitCards.length; j++) {
+        const testCards = suitCards.slice(i, j + 1);
+        const ordered = getPlayableOrder(testCards, tableau);
+        
+        if (ordered && ordered.length > 0) {
+          // Beräkna poängvärde av korten (vi vill bli av med höga poäng)
+          const points = ordered.reduce((sum, c) => sum + getCardPoints(c), 0);
+          const score = ordered.length * 100 + points; // Prioritera antal kort, sedan poäng
+          
+          if (score > bestScore) {
+            bestScore = score;
+            bestSequence = ordered;
+          }
+        }
+      }
+    }
+  }
+  
+  // Testa även att spela kort från olika färger om det är möjligt
+  // (t.ex. flera 7:or, eller kort som bygger på varandra)
+  if (playableCards.length > 1) {
+    const ordered = getPlayableOrder(playableCards, tableau);
+    if (ordered && ordered.length > bestSequence.length) {
+      bestSequence = ordered;
+    }
+  }
+  
+  if (bestSequence.length > 0) {
+    return { action: 'play', cards: bestSequence };
+  }
+  
+  // Fallback: spela första spelbara kortet
+  const singleCard = getPlayableOrder([playableCards[0]], tableau);
+  if (singleCard) {
+    return { action: 'play', cards: singleCard };
+  }
+  
+  return { action: 'pass' };
+}
+
+async function executeBotTurn(room) {
+  if (room.state !== 'playing' || room.roundEnded) return;
+  
+  const currentPlayer = room.players[room.currentPlayerIndex];
+  if (!currentPlayer || !currentPlayer.isBot) return;
+  
+  // Vänta lite så det känns mer naturligt
+  await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+  
+  // Hämta senaste rumstatus (kan ha ändrats)
+  const freshRoom = await getRoom(room.code);
+  if (!freshRoom || freshRoom.state !== 'playing' || freshRoom.roundEnded) return;
+  if (freshRoom.currentPlayerIndex !== room.currentPlayerIndex) return;
+  
+  const player = freshRoom.players[freshRoom.currentPlayerIndex];
+  if (!player || !player.isBot) return;
+  
+  const move = getBotMove(player, freshRoom.tableau);
+  
+  if (move.action === 'play' && move.cards.length > 0) {
+    // Ta bort kort från hand
+    for (const card of move.cards) {
+      const index = player.hand.findIndex(c => c.id === card.id);
+      if (index >= 0) player.hand.splice(index, 1);
+    }
+    
+    // Uppdatera tableau
+    for (const card of move.cards) {
+      if (!freshRoom.tableau[card.suit]) {
+        freshRoom.tableau[card.suit] = { low: card.rank, high: card.rank };
+      } else {
+        if (card.rank < freshRoom.tableau[card.suit].low) {
+          freshRoom.tableau[card.suit].low = card.rank;
+        }
+        if (card.rank > freshRoom.tableau[card.suit].high) {
+          freshRoom.tableau[card.suit].high = card.rank;
+        }
+      }
+    }
+    
+    console.log(`Bot ${player.name} spelade: ${move.cards.map(c => c.id).join(', ')}`);
+    
+    // Kolla om rundan är slut
+    if (player.hand.length === 0) {
+      endRoundForRoom(freshRoom);
+    } else {
+      freshRoom.currentPlayerIndex = (freshRoom.currentPlayerIndex + 1) % freshRoom.players.length;
+    }
+  } else {
+    // Passa
+    freshRoom.askenHolderId = player.id;
+    freshRoom.currentPlayerIndex = (freshRoom.currentPlayerIndex + 1) % freshRoom.players.length;
+    console.log(`Bot ${player.name} passade`);
+  }
+  
+  freshRoom.lastActivity = Date.now();
+  await saveRoom(freshRoom);
+  
+  emitRoomStateToAll(freshRoom);
+  
+  // Kör nästa robots tur om det är en robot
+  if (freshRoom.state === 'playing' && !freshRoom.roundEnded) {
+    const nextPlayer = freshRoom.players[freshRoom.currentPlayerIndex];
+    if (nextPlayer && nextPlayer.isBot) {
+      executeBotTurn(freshRoom);
+    }
+  }
+}
+
+function endRoundForRoom(room) {
+  room.roundEnded = true;
+  
+  room.roundScores = room.players.map(player => {
+    const cardPoints = player.hand.reduce((sum, c) => sum + getCardPoints(c), 0);
+    const askenPoints = player.id === room.askenHolderId ? 50 : 0;
+    const roundTotal = cardPoints + askenPoints;
+    player.score += roundTotal;
+    
+    return {
+      playerId: player.id,
+      name: player.name,
+      cardPoints,
+      askenPoints,
+      roundTotal
+    };
+  });
+  
+  const lowestRoundScore = Math.min(...room.roundScores.map(rs => rs.roundTotal));
+  const roundWinnerIds = room.roundScores
+    .filter(rs => rs.roundTotal === lowestRoundScore)
+    .map(rs => rs.playerId);
+  room.roundWinners = room.players.filter(p => roundWinnerIds.includes(p.id));
+  
+  room.state = 'roundEnd';
+}
+
+function emitRoomStateToAll(room) {
+  for (const player of room.players) {
+    if (player.isBot) continue; // Robotar behöver inte state
+    
+    const socketId = player.id;
+    const playerSocket = io.sockets.sockets.get(socketId);
+    if (!playerSocket) continue;
+    
+    const isGameOver = room.mode === 'quick' || room.players.some(p => p.score >= 500);
+    
+    const state = {
+      code: room.code,
+      hostId: room.hostId,
+      state: room.state,
+      mode: room.mode,
+      roundNumber: room.roundNumber,
+      currentPlayerIndex: room.currentPlayerIndex,
+      dealerIndex: room.dealerIndex,
+      tableau: room.tableau,
+      askenHolderId: room.askenHolderId,
+      roundEnded: room.roundEnded,
+      roundWinners: room.roundWinners.map(w => ({ id: w.id, name: w.name })),
+      roundScores: room.roundScores || null,
+      isGameOver,
+      myId: player.id,
+      players: room.players.map((p, index) => ({
+        id: p.id,
+        name: p.name,
+        cardCount: p.hand.length,
+        score: p.score,
+        hand: p.id === player.id ? p.hand : null,
+        isMe: p.id === player.id,
+        isCurrent: index === room.currentPlayerIndex,
+        isHost: p.id === room.hostId,
+        isDealer: index === room.dealerIndex,
+        hasAsken: p.id === room.askenHolderId,
+        isWinner: room.roundWinners.some(w => w.id === p.id),
+        connected: p.connected,
+        isBot: p.isBot || false
+      }))
+    };
+    
+    if (player.id === room.players[room.currentPlayerIndex]?.id && room.state === 'playing' && !room.roundEnded) {
+      state.playableCardIds = player.hand
+        .filter(c => canBePartOfSequence(c, player.hand, room.tableau))
+        .map(c => c.id);
+    }
+    
+    playerSocket.emit('gameState', state);
+  }
+}
+
 function dealCards(room) {
   room.players.forEach(p => p.hand = []);
   
@@ -497,6 +752,67 @@ io.on('connection', (socket) => {
     socket.emit('pong');
   });
   
+  // Lägg till robot
+  socket.on('addBot', async () => {
+    const room = await getRoom(currentRoom);
+    if (!room || room.hostId !== socket.id) return;
+    
+    if (room.state !== 'lobby') {
+      socket.emit('error', { message: 'Kan bara lägga till robotar i lobbyn' });
+      return;
+    }
+    
+    if (room.players.length >= 7) {
+      socket.emit('error', { message: 'Rummet är fullt (max 7 spelare)' });
+      return;
+    }
+    
+    const existingNames = room.players.map(p => p.name);
+    const botName = getRandomBotName(existingNames);
+    const botId = `bot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    room.players.push({
+      id: botId,
+      name: botName,
+      hand: [],
+      score: 0,
+      connected: true,
+      isBot: true
+    });
+    
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
+    emitRoomState(room);
+    console.log(`Robot ${botName} tillagd i rum ${room.code}`);
+  });
+  
+  // Ta bort robot
+  socket.on('removeBot', async (botId) => {
+    const room = await getRoom(currentRoom);
+    if (!room || room.hostId !== socket.id) return;
+    
+    if (room.state !== 'lobby') {
+      socket.emit('error', { message: 'Kan bara ta bort robotar i lobbyn' });
+      return;
+    }
+    
+    const botIndex = room.players.findIndex(p => p.id === botId && p.isBot);
+    if (botIndex === -1) {
+      socket.emit('error', { message: 'Roboten hittades inte' });
+      return;
+    }
+    
+    const botName = room.players[botIndex].name;
+    room.players.splice(botIndex, 1);
+    
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
+    emitRoomState(room);
+    console.log(`Robot ${botName} borttagen från rum ${room.code}`);
+  });
+  
   // Starta spel
   socket.on('startGame', async (mode) => {
     const room = await getRoom(currentRoom);
@@ -514,7 +830,13 @@ io.on('connection', (socket) => {
     room.lastActivity = Date.now();
     await saveRoom(room);
     
-    emitRoomState(room);
+    emitRoomStateToAll(room);
+    
+    // Om första spelaren är en robot, kör dess tur
+    const firstPlayer = room.players[room.currentPlayerIndex];
+    if (firstPlayer && firstPlayer.isBot) {
+      executeBotTurn(room);
+    }
   });
   
   // Välj kort
@@ -610,7 +932,15 @@ io.on('connection', (socket) => {
     room.lastActivity = Date.now();
     await saveRoom(room);
     
-    emitRoomState(room);
+    emitRoomStateToAll(room);
+    
+    // Om nästa spelare är en robot, kör dess tur
+    if (room.state === 'playing' && !room.roundEnded) {
+      const nextPlayer = room.players[room.currentPlayerIndex];
+      if (nextPlayer && nextPlayer.isBot) {
+        executeBotTurn(room);
+      }
+    }
   });
   
   // Passa
@@ -637,7 +967,13 @@ io.on('connection', (socket) => {
     room.lastActivity = Date.now();
     await saveRoom(room);
     
-    emitRoomState(room);
+    emitRoomStateToAll(room);
+    
+    // Om nästa spelare är en robot, kör dess tur
+    const nextPlayer = room.players[room.currentPlayerIndex];
+    if (nextPlayer && nextPlayer.isBot) {
+      executeBotTurn(room);
+    }
   });
   
   // Nästa runda
@@ -656,7 +992,13 @@ io.on('connection', (socket) => {
     room.lastActivity = Date.now();
     await saveRoom(room);
     
-    emitRoomState(room);
+    emitRoomStateToAll(room);
+    
+    // Om första spelaren är en robot, kör dess tur
+    const firstPlayer = room.players[room.currentPlayerIndex];
+    if (firstPlayer && firstPlayer.isBot) {
+      executeBotTurn(room);
+    }
   });
   
   // Nytt spel
