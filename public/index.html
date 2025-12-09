@@ -1431,10 +1431,10 @@
       
       if (isHost && isRoundEnd) {
         footer.innerHTML = `
-          <button class="next-round-btn" onclick="${isGameOver ? 'newGame()' : 'nextRound()'}">
-            ${isGameOver ? '🎮 Nytt spel' : '➡️ Nästa runda'}
+          <button class="modal-btn" onclick="${isGameOver ? 'newGame()' : 'nextRound()'}">
+            ${isGameOver ? 'Nytt spel' : 'Nästa runda'}
           </button>
-          <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
+          <button class="modal-btn secondary" onclick="leaveRoom()">Avsluta</button>
         `;
       } else {
         footer.innerHTML = `
@@ -1642,8 +1642,17 @@
       
       document.getElementById('modalTitle').textContent = isGameOver ? 'Spelet slut!' : 'Runda slut!';
       
-      // Visa vinnare
-      const winners = gameState.roundWinners;
+      // Bestäm vinnare
+      let winners;
+      if (isGameOver) {
+        // Spelvinnare = lägst TOTALPOÄNG
+        const lowestTotal = Math.min(...gameState.players.map(p => p.score));
+        winners = gameState.players.filter(p => p.score === lowestTotal);
+      } else {
+        // Rundvinnare = lägst poäng DENNA RUNDA (kommer från servern)
+        winners = gameState.roundWinners;
+      }
+      
       if (winners.length === 1) {
         const winText = isGameOver ? 'vinner spelet!' : 'vinner rundan!';
         document.getElementById('modalWinner').textContent = `🏆 ${winners[0].name} ${winText}`;
@@ -1656,7 +1665,8 @@
           const last = names.pop();
           winnerText = names.join(', ') + ' och ' + last;
         }
-        document.getElementById('modalWinner').textContent = `🏆 ${winnerText} delar på vinsten!`;
+        const winText = isGameOver ? 'delar på segern!' : 'delar på vinsten!';
+        document.getElementById('modalWinner').textContent = `🏆 ${winnerText} ${winText}`;
       }
 
       // Poängtabell
