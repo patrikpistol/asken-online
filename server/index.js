@@ -443,6 +443,9 @@ async function executeBotTurn(room) {
   const move = getBotMove(player, freshRoom.tableau);
   
   if (move.action === 'play' && move.cards.length > 0) {
+    // Spara vilka kort som spelades (för att markera på spelplanen)
+    freshRoom.lastPlayedCards = move.cards.map(c => c.id);
+    
     // Ta bort kort från hand
     for (const card of move.cards) {
       const index = player.hand.findIndex(c => c.id === card.id);
@@ -537,11 +540,13 @@ function emitRoomStateToAll(room) {
       roundNumber: room.roundNumber,
       currentPlayerIndex: room.currentPlayerIndex,
       dealerIndex: room.dealerIndex,
+      starterIndex: room.starterIndex,
       tableau: room.tableau,
       askenHolderId: room.askenHolderId,
       roundEnded: room.roundEnded,
       roundWinners: room.roundWinners.map(w => ({ id: w.id, name: w.name })),
       roundScores: room.roundScores || null,
+      lastPlayedCards: room.lastPlayedCards || [],
       isGameOver,
       myId: player.id,
       players: room.players.map((p, index) => ({
@@ -554,6 +559,7 @@ function emitRoomStateToAll(room) {
         isCurrent: index === room.currentPlayerIndex,
         isHost: p.id === room.hostId,
         isDealer: index === room.dealerIndex,
+        isStarter: index === room.starterIndex,
         hasAsken: p.id === room.askenHolderId,
         isWinner: room.roundWinners.some(w => w.id === p.id),
         connected: p.connected,
@@ -591,6 +597,8 @@ function dealCards(room) {
     p.hand.some(c => c.suit === 'spades' && c.rank === 7)
   );
   
+  room.starterIndex = room.currentPlayerIndex; // Spara vem som börjar
+  room.lastPlayedCards = []; // Rensa senast spelade kort
   room.tableau = { spades: null, hearts: null, diamonds: null, clubs: null };
   room.askenHolderId = null;
   room.roundEnded = false;
@@ -902,6 +910,9 @@ io.on('connection', (socket) => {
     
     console.log('Ordnade kort:', orderedCards.map(c => `${c.suit}-${c.rank}`));
     
+    // Spara vilka kort som spelades (för att markera på spelplanen)
+    room.lastPlayedCards = orderedCards.map(c => c.id);
+    
     // Ta bort kort från hand
     for (const card of orderedCards) {
       const index = player.hand.findIndex(c => c.id === card.id);
@@ -1020,6 +1031,21 @@ io.on('connection', (socket) => {
     await saveRoom(room);
     
     emitRoomState(room);
+  });
+  
+  // Värden avslutar spelet
+  socket.on('hostEndGame', async () => {
+    const room = await getRoom(currentRoom);
+    if (!room || room.hostId !== socket.id) return;
+    
+    // Meddela alla andra spelare
+    socket.to(room.code).emit('hostEndedGame');
+    
+    // Ta bort rummet
+    await deleteRoom(room.code);
+    currentRoom = null;
+    
+    console.log(`Värd avslutade spel i rum ${room.code}`);
   });
   
   // Lämna rum
@@ -1147,6 +1173,8 @@ io.on('connection', (socket) => {
   
   function emitRoomState(room) {
     for (const player of room.players) {
+      if (player.isBot) continue;
+      
       const socketId = player.id;
       const playerSocket = io.sockets.sockets.get(socketId);
       if (!playerSocket) continue;
@@ -1161,11 +1189,13 @@ io.on('connection', (socket) => {
         roundNumber: room.roundNumber,
         currentPlayerIndex: room.currentPlayerIndex,
         dealerIndex: room.dealerIndex,
+        starterIndex: room.starterIndex,
         tableau: room.tableau,
         askenHolderId: room.askenHolderId,
         roundEnded: room.roundEnded,
         roundWinners: room.roundWinners.map(w => ({ id: w.id, name: w.name })),
         roundScores: room.roundScores || null,
+        lastPlayedCards: room.lastPlayedCards || [],
         isGameOver,
         myId: player.id,
         players: room.players.map((p, index) => ({
@@ -1178,9 +1208,11 @@ io.on('connection', (socket) => {
           isCurrent: index === room.currentPlayerIndex,
           isHost: p.id === room.hostId,
           isDealer: index === room.dealerIndex,
+          isStarter: index === room.starterIndex,
           hasAsken: p.id === room.askenHolderId,
           isWinner: room.roundWinners.some(w => w.id === p.id),
-          connected: p.connected
+          connected: p.connected,
+          isBot: p.isBot || false
         }))
       };
       
