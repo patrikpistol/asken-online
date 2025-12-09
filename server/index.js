@@ -158,7 +158,7 @@ function sortHand(hand) {
 }
 
 function getCardPoints(card) {
-  if (card.rank === 1) return 15;  // Ess
+  if (card.rank === 1) return 25;  // Ess
   if (card.rank >= 10) return 10;  // Klädda kort (10, J, Q, K)
   return 5;  // Oklädda kort (2-9)
 }
