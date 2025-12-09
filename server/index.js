@@ -158,9 +158,9 @@ function sortHand(hand) {
 }
 
 function getCardPoints(card) {
-  if (card.rank === 1) return 15;
-  if (card.rank >= 10) return 10;
-  return card.rank;
+  if (card.rank === 1) return 15;  // Ess
+  if (card.rank >= 10) return 10;  // Klädda kort (10, J, Q, K)
+  return 5;  // Oklädda kort (2-9)
 }
 
 function generateRoomCode() {
@@ -645,8 +645,12 @@ io.on('connection', (socket) => {
     const room = await getRoom(currentRoom);
     if (!room || room.hostId !== socket.id) return;
     
+    // Stäng modal hos alla spelare först
+    io.to(room.code).emit('closeModal');
+    
     room.roundNumber++;
     room.dealerIndex = (room.dealerIndex + 1) % room.players.length;
+    room.roundScores = null; // Rensa föregående rundas poäng
     dealCards(room);
     
     room.lastActivity = Date.now();
@@ -660,11 +664,15 @@ io.on('connection', (socket) => {
     const room = await getRoom(currentRoom);
     if (!room || room.hostId !== socket.id) return;
     
+    // Stäng modal hos alla spelare först
+    io.to(room.code).emit('closeModal');
+    
     room.players.forEach(p => p.score = 0);
     room.roundNumber = 1;
     room.state = 'lobby';
     room.roundEnded = false;
     room.roundWinners = [];
+    room.roundScores = null;
     
     room.lastActivity = Date.now();
     await saveRoom(room);
@@ -726,6 +734,26 @@ io.on('connection', (socket) => {
     const room = await getRoom(currentRoom);
     if (!room) return;
     
+    // Hitta spelarens namn innan vi tar bort dem
+    const leavingPlayer = room.players.find(p => p.id === socket.id);
+    const leavingPlayerName = leavingPlayer ? leavingPlayer.name : 'En spelare';
+    
+    // Om spelet är igång (inte i lobby), avsluta hela spelet
+    if (room.state === 'playing' || room.state === 'roundEnd') {
+      // Meddela alla andra spelare att spelet avslutats
+      socket.to(room.code).emit('gameEnded', { 
+        playerName: leavingPlayerName,
+        reason: 'left'
+      });
+      
+      // Ta bort rummet helt
+      await deleteRoom(room.code);
+      socket.leave(currentRoom);
+      currentRoom = null;
+      return;
+    }
+    
+    // I lobby - ta bara bort spelaren
     const playerIndex = room.players.findIndex(p => p.id === socket.id);
     if (playerIndex >= 0) {
       room.players.splice(playerIndex, 1);
