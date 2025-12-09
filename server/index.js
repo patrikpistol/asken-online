@@ -24,10 +24,10 @@ const io = new Server(server, {
 const BOT_NAMES = [
   'Boten Anna',
   'R2-D2',
-  'Hal',
+  'HAL 9000',
   'Mathilda Järndotter',
   'C-3PO',
-  'Ash Hyperdyne 120-A/2',
+  'Ash Hyperdyne Systems 120-A/2',
   'Bishop',
   'Chappie',
   'M3GAN',
@@ -40,7 +40,24 @@ const BOT_NAMES = [
   'T-800 Model 101',
   'T-1000',
   'Wall-E',
-  'Mother'
+  'Mother USCSS Nostromo',
+  'Marvin den deprimerade',
+  'Astro Boy',
+  'K-2SO den sarkastiske',
+  'R. Daneel Olivaw',
+  'Hadaly',
+  'Järnjätten',
+  'Dot Matrix',
+  'KITT',
+  'TARS',
+  'ED-209',
+  'Baymax',
+  'Andrew Martin',
+  'Mazinger Z',
+  'Sonny',
+  'GLaDOS',
+  'Megatron',
+  'Optimus Prime'
 ];
 
 function getRandomBotName(existingNames) {
