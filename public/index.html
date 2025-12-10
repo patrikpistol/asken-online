@@ -81,6 +81,17 @@
       display: block;
       margin: 0 auto 24px auto;
     }
+    
+    .form-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .form-row .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
 
     .form-group {
       margin-bottom: 20px;
@@ -102,6 +113,7 @@
       color: var(--text);
       font-size: 1rem;
       font-family: inherit;
+      height: 50px;
     }
 
     .form-group input:focus {
@@ -111,9 +123,9 @@
 
     .form-group input.code-input {
       text-transform: uppercase;
-      letter-spacing: 8px;
+      letter-spacing: 4px;
       text-align: center;
-      font-size: 1.5rem;
+      font-size: 1rem;
       font-weight: bold;
     }
 
@@ -148,6 +160,20 @@
 
     .btn-secondary:hover {
       border-color: var(--accent);
+      color: var(--accent);
+    }
+    
+    .rules-link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    
+    .rules-link:hover {
       color: var(--accent);
     }
 
@@ -1022,18 +1048,18 @@
       <div class="menu-card">
         <img src="gfx/asken_logo.webp" alt="ASKEN" class="game-logo">
         <div id="menuError" class="error-msg" style="display: none;"></div>
-        <div class="form-group">
-          <label>Ditt namn</label>
-          <input type="text" id="playerName" placeholder="Ange ditt namn" maxlength="20">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ditt namn</label>
+            <input type="text" id="playerName" placeholder="Namn" maxlength="20">
+          </div>
+          <div class="form-group">
+            <label>Rumskod</label>
+            <input type="text" id="roomCode" class="code-input" placeholder="XXXX" maxlength="4" oninput="updateMainButton()">
+          </div>
         </div>
-        <button class="btn btn-primary" onclick="createRoom()">Skapa nytt rum</button>
-        <div class="divider">eller</div>
-        <div class="form-group">
-          <label>Rumskod</label>
-          <input type="text" id="roomCode" class="code-input" placeholder="XXXX" maxlength="4">
-        </div>
-        <button class="btn btn-secondary" onclick="joinRoom()">Gå med i rum</button>
-        <a href="manual.html" class="btn btn-secondary" style="display: block; margin-top: 24px;">📖 Spelregler</a>
+        <button class="btn btn-primary" id="mainActionBtn" onclick="mainAction()">Skapa nytt rum</button>
+        <a href="manual.html" class="rules-link">Spelregler</a>
       </div>
     </div>
 
@@ -1315,6 +1341,25 @@
     // ============================================
     // MENY-FUNKTIONER
     // ============================================
+
+    function updateMainButton() {
+      const code = document.getElementById('roomCode').value.trim();
+      const btn = document.getElementById('mainActionBtn');
+      if (code.length > 0) {
+        btn.textContent = 'Gå med i rum';
+      } else {
+        btn.textContent = 'Skapa nytt rum';
+      }
+    }
+    
+    function mainAction() {
+      const code = document.getElementById('roomCode').value.trim();
+      if (code.length > 0) {
+        joinRoom();
+      } else {
+        createRoom();
+      }
+    }
 
     function createRoom() {
       const name = document.getElementById('playerName').value.trim();
