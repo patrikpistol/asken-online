@@ -13,11 +13,13 @@
       --bg-felt-dark: #1e3d32;
       --text: #f0f0f0;
       --text-dim: #888;
-      --accent: #e6b84a;
+      --accent: #c69e60;
+      --accent-hover: #b08a50;
+      --gold: #c69e60;
       --red: #e05252;
       --green: #4caf50;
       --card-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      --glow: 0 0 20px rgba(230, 184, 74, 0.3);
+      --glow: 0 0 20px rgba(198, 158, 96, 0.3);
     }
 
     * {
@@ -147,7 +149,7 @@
     }
 
     .btn-primary:hover {
-      background: #d4a73e;
+      background: var(--accent-hover);
       transform: translateY(-2px);
     }
 
@@ -266,17 +268,19 @@
     
     .invite-btn {
       background: transparent;
-      border: none;
-      color: var(--text-dim);
+      border: 1px solid #505050;
+      border-radius: 6px;
+      color: var(--text);
       font-size: 0.85rem;
       cursor: pointer;
-      padding: 8px 16px;
-      transition: color 0.2s;
+      padding: 8px 20px;
+      transition: all 0.2s;
       font-family: inherit;
-      margin-bottom: 8px;
+      margin-bottom: 16px;
     }
     
     .invite-btn:hover {
+      border-color: var(--accent);
       color: var(--accent);
     }
 
@@ -397,7 +401,7 @@
 
     .mode-btn.active {
       border-color: var(--accent);
-      background: rgba(230, 184, 74, 0.1);
+      background: rgba(198, 158, 96, 0.1);
     }
 
     .mode-btn span {
@@ -428,7 +432,7 @@
     }
     
     .start-btn:hover:not(:disabled) {
-      background: #d4a73e;
+      background: var(--accent-hover);
       transform: translateY(-2px);
     }
     
@@ -473,7 +477,7 @@
     
     .difficulty-btn.active {
       border-color: var(--accent);
-      background: rgba(230, 184, 74, 0.1);
+      background: rgba(198, 158, 96, 0.1);
     }
     
     .difficulty-btn:hover:not(.active) {
@@ -579,7 +583,7 @@
 
     .table-card.seven {
       background: linear-gradient(135deg, #fff9e6, #fff);
-      box-shadow: 0 2px 12px rgba(230, 184, 74, 0.4);
+      box-shadow: 0 2px 12px rgba(198, 158, 96, 0.4);
     }
 
     .table-card.completed {
@@ -592,7 +596,7 @@
     .table-card.completed.black { color: #606060; }
     
     .table-card.last-played {
-      box-shadow: 0 0 0 3px var(--gold), 0 4px 12px rgba(212, 175, 55, 0.4);
+      box-shadow: 0 0 0 3px var(--gold), 0 4px 12px rgba(198, 158, 96, 0.4);
       transform: scale(1.05);
       z-index: 10;
     }
@@ -757,7 +761,7 @@
       -webkit-transform: translateY(-14px) !important;
       transform: translateY(-14px) !important;
       border-color: var(--accent);
-      box-shadow: 0 8px 25px rgba(230, 184, 74, 0.5);
+      box-shadow: 0 8px 25px rgba(198, 158, 96, 0.5);
     }
 
     .card:not(.selected) {
@@ -969,7 +973,7 @@
     }
     
     .score-table .winner-row {
-      background: rgba(212, 175, 55, 0.15);
+      background: rgba(198, 158, 96, 0.15);
     }
     
     .score-table .winner-row td {
@@ -997,7 +1001,7 @@
     }
 
     .modal-btn:hover {
-      background: #d4a73e;
+      background: var(--accent-hover);
       transform: translateY(-2px);
     }
 
