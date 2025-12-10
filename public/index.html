@@ -263,6 +263,22 @@
       background: rgba(76, 175, 80, 0.3);
       border-color: #4caf50;
     }
+    
+    .invite-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 8px 16px;
+      transition: color 0.2s;
+      font-family: inherit;
+      margin-bottom: 8px;
+    }
+    
+    .invite-btn:hover {
+      color: var(--accent);
+    }
 
     .room-code-label {
       font-size: 0.9rem;
@@ -962,6 +978,36 @@
       color: rgba(255,255,255,0.4);
       margin-top: 16px;
     }
+    
+    .invite-link-label {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      text-align: left;
+    }
+    
+    .invite-link-box {
+      background: var(--bg-dark);
+      border: 2px solid #404040;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.85rem;
+      word-break: break-all;
+      text-align: left;
+      color: var(--accent);
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    
+    .invite-link-box:hover {
+      border-color: var(--accent);
+    }
+    
+    .invite-link-box.copied {
+      border-color: var(--green);
+      background: rgba(76, 175, 80, 0.1);
+    }
 
     .not-host-msg {
       color: var(--text-dim);
@@ -1072,6 +1118,7 @@
           <div class="room-code" id="displayRoomCode">XXXX</div>
           <button class="copy-btn" onclick="copyRoomCode()" title="Kopiera rumskod">📋</button>
         </div>
+        <button class="invite-btn" onclick="showInviteModal()">Bjud in vän</button>
         <div class="player-list" id="lobbyPlayerList"></div>
         <div id="botButtonContainer"></div>
         <div id="botDifficultyContainer" style="display: none;">
@@ -1144,6 +1191,25 @@
         </table>
         <div class="modal-buttons" id="modalButtons"></div>
         <p class="modal-hint">Klicka utanför för att se spelplanen</p>
+      </div>
+    </div>
+    
+    <!-- Inbjudningsmodal -->
+    <div class="modal-overlay" id="inviteModal" onclick="closeInviteModal()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h2>Bjud in vän</h2>
+        <div class="form-group" style="text-align: left; margin-top: 16px;">
+          <label>Vännens namn</label>
+          <input type="text" id="inviteName" placeholder="Ange namn" maxlength="20">
+        </div>
+        <div id="inviteLinkContainer" style="display: none;">
+          <div class="invite-link-label">Inbjudningslänk</div>
+          <div class="invite-link-box" id="inviteLinkBox"></div>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn" id="generateLinkBtn" onclick="generateInviteLink()">Skapa länk</button>
+          <button class="modal-btn secondary" onclick="closeInviteModal()">Stäng</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1432,6 +1498,50 @@
         setTimeout(() => {
           btn.textContent = '📋';
           btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+    
+    function showInviteModal() {
+      document.getElementById('inviteName').value = '';
+      document.getElementById('inviteLinkContainer').style.display = 'none';
+      document.getElementById('generateLinkBtn').textContent = 'Skapa länk';
+      document.getElementById('inviteModal').classList.add('visible');
+    }
+    
+    function closeInviteModal() {
+      document.getElementById('inviteModal').classList.remove('visible');
+    }
+    
+    function generateInviteLink() {
+      const name = document.getElementById('inviteName').value.trim();
+      if (!name) {
+        document.getElementById('inviteName').focus();
+        return;
+      }
+      
+      const code = document.getElementById('displayRoomCode').textContent;
+      const baseUrl = window.location.origin + window.location.pathname;
+      const link = `${baseUrl}?namn=${encodeURIComponent(name)}&rum=${code}`;
+      
+      const linkBox = document.getElementById('inviteLinkBox');
+      linkBox.textContent = link;
+      linkBox.onclick = function() { copyInviteLink(link); };
+      document.getElementById('inviteLinkContainer').style.display = 'block';
+      document.getElementById('generateLinkBtn').textContent = 'Kopiera länk';
+      document.getElementById('generateLinkBtn').onclick = function() {
+        copyInviteLink(link);
+      };
+    }
+    
+    function copyInviteLink(link) {
+      navigator.clipboard.writeText(link).then(() => {
+        const linkBox = document.getElementById('inviteLinkBox');
+        linkBox.classList.add('copied');
+        document.getElementById('generateLinkBtn').textContent = 'Kopierad!';
+        setTimeout(() => {
+          linkBox.classList.remove('copied');
+          document.getElementById('generateLinkBtn').textContent = 'Kopiera länk';
         }, 2000);
       });
     }
@@ -2030,19 +2140,30 @@
     document.addEventListener('DOMContentLoaded', () => {
       connectSocket();
       
+      // Läs URL-parametrar (för inbjudningslänkar)
+      const urlParams = new URLSearchParams(window.location.search);
+      const inviteName = urlParams.get('namn');
+      const inviteRoom = urlParams.get('rum');
+      
+      if (inviteName) {
+        document.getElementById('playerName').value = inviteName;
+      }
+      if (inviteRoom) {
+        document.getElementById('roomCode').value = inviteRoom.toUpperCase();
+        updateMainButton();
+      }
+      
+      // Rensa URL-parametrar utan att ladda om sidan
+      if (inviteName || inviteRoom) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
       // Enter-tangent för att gå med
       document.getElementById('roomCode').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') joinRoom();
+        if (e.key === 'Enter') mainAction();
       });
       document.getElementById('playerName').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          const code = document.getElementById('roomCode').value.trim();
-          if (code.length === 4) {
-            joinRoom();
-          } else {
-            createRoom();
-          }
-        }
+        if (e.key === 'Enter') mainAction();
       });
     });
   </script>
