@@ -2,22 +2,18 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Asken Online</title>
-  <script src="/socket.io/socket.io.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asken - Spelmanual</title>
   <style>
     :root {
       --bg-dark: #1a1a1a;
       --bg-card: #2a2a2a;
       --bg-felt: #2d5a4a;
-      --bg-felt-dark: #1e3d32;
       --text: #f0f0f0;
       --text-dim: #888;
       --accent: #e6b84a;
       --red: #e05252;
       --green: #4caf50;
-      --card-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      --glow: 0 0 20px rgba(230, 184, 74, 0.3);
     }
 
     * {
@@ -32,92 +28,155 @@
       color: var(--text);
       min-height: 100vh;
       padding: 16px;
+      line-height: 1.6;
     }
 
-    .container {
-      max-width: 800px;
+    .manual-container {
+      max-width: 700px;
       margin: 0 auto;
+    }
+
+    .manual-card {
+      background: var(--bg-card) url('gfx/bg_dark_steel.webp') repeat;
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .logo-container {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .game-logo {
+      max-width: 180px;
+      height: auto;
     }
 
     h1 {
       text-align: center;
-      font-size: 2rem;
+      font-size: 1.8rem;
       margin-bottom: 8px;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+      font-size: 1rem;
     }
 
     h2 {
       font-size: 1.3rem;
       margin-bottom: 16px;
+      color: var(--accent);
+      border-bottom: 1px solid #404040;
+      padding-bottom: 8px;
     }
 
-    /* ============================================
-       LOBBY / JOIN SKÄRMAR
-       ============================================ */
-    
-    .screen {
-      display: none;
-    }
-
-    .screen.active {
-      display: block;
-    }
-
-    .menu-card {
-      background: var(--bg-card) url('gfx/bg_dark_steel.webp') repeat;
-      border-radius: 16px;
-      padding: 32px;
-      max-width: 400px;
-      margin: 40px auto;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    }
-
-    .menu-card h1 {
-      margin-bottom: 24px;
-    }
-    
-    .game-logo {
-      max-width: 200px;
-      height: auto;
-      display: block;
-      margin: 0 auto 24px auto;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-      color: var(--text-dim);
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 14px;
-      border: 2px solid #404040;
-      border-radius: 10px;
-      background: var(--bg-dark);
+    h3 {
+      font-size: 1.1rem;
+      margin: 20px 0 12px 0;
       color: var(--text);
-      font-size: 1rem;
-      font-family: inherit;
     }
 
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--accent);
+    p {
+      margin-bottom: 12px;
+      color: var(--text);
     }
 
-    .form-group input.code-input {
-      text-transform: uppercase;
-      letter-spacing: 8px;
-      text-align: center;
-      font-size: 1.5rem;
+    ul, ol {
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .highlight {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .card-example {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 44px;
+      background: white;
+      border-radius: 4px;
       font-weight: bold;
+      font-size: 0.9rem;
+      margin: 0 2px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .card-example.red {
+      color: #d32f2f;
+    }
+
+    .card-example.black {
+      color: #1a1a1a;
+    }
+
+    .points-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+
+    .points-table th,
+    .points-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #404040;
+    }
+
+    .points-table th {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .points-table td:last-child {
+      text-align: right;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .tip-box {
+      background: rgba(230, 184, 74, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+
+    .tip-box-title {
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .warning-box {
+      background: rgba(224, 82, 82, 0.1);
+      border: 1px solid var(--red);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+
+    .warning-box-title {
+      font-weight: 600;
+      color: var(--red);
+      margin-bottom: 8px;
     }
 
     .btn {
+      display: block;
       width: 100%;
       padding: 14px;
       border: none;
@@ -127,6 +186,8 @@
       cursor: pointer;
       transition: all 0.2s;
       font-family: inherit;
+      text-decoration: none;
+      text-align: center;
     }
 
     .btn-primary {
@@ -139,1866 +200,432 @@
       transform: translateY(-2px);
     }
 
-    .btn-secondary {
-      background: transparent;
-      color: var(--text);
-      border: 2px solid #404040;
-      margin-top: 12px;
+    .section-icon {
+      font-size: 1.5rem;
+      margin-right: 8px;
     }
 
-    .btn-secondary:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .divider {
-      text-align: center;
-      margin: 24px 0;
-      color: var(--text-dim);
-      font-size: 0.85rem;
-    }
-
-    .error-msg {
-      background: rgba(224, 82, 82, 0.15);
-      border: 1px solid var(--red);
-      color: var(--red);
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      font-size: 0.9rem;
-    }
-
-    .error-msg.game-error {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      padding: 14px 28px;
-      background: rgba(0, 0, 0, 0.85);
-      border: 2px solid var(--red);
-      color: #ff6b6b;
-      font-weight: 600;
-      animation: shake 0.5s ease-in-out;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(-50%); }
-      20%, 60% { transform: translateX(calc(-50% - 10px)); }
-      40%, 80% { transform: translateX(calc(-50% + 10px)); }
-    }
-
-    /* ============================================
-       LOBBY (väntar på spelare)
-       ============================================ */
-
-    .lobby-card {
-      background: var(--bg-card) url('gfx/bg_dark_steel.webp') repeat;
-      border-radius: 16px;
-      padding: 32px;
-      max-width: 500px;
-      margin: 40px auto;
-      text-align: center;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    }
-
-    .room-code-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-    }
-
-    .room-code {
-      font-size: 3rem;
-      font-weight: bold;
-      letter-spacing: 12px;
-      color: var(--accent);
-      margin: 24px 0;
-      font-family: monospace;
-    }
-    
-    .copy-btn {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .copy-btn:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    
-    .copy-btn.copied {
-      background: rgba(76, 175, 80, 0.3);
-      border-color: #4caf50;
-    }
-
-    .room-code-label {
-      font-size: 0.9rem;
-      color: var(--text-dim);
-    }
-
-    .player-list {
-      margin: 24px 0;
-      text-align: left;
-    }
-
-    .player-list-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: var(--bg-dark);
-      border-radius: 8px;
-      margin-bottom: 8px;
-    }
-
-    .player-list-item.is-me {
-      border: 2px solid var(--accent);
-    }
-
-    .player-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: var(--bg-dark);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 1.1rem;
-    }
-
-    .player-info {
-      flex: 1;
-    }
-
-    .player-info .name {
-      font-weight: 600;
-    }
-
-    .player-info .role {
-      font-size: 0.8rem;
-      color: var(--text-dim);
-    }
-
-    .host-badge {
-      background: var(--accent);
-      color: var(--bg-dark);
-      padding: 4px 8px;
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
       border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    
-    .player-list-item.is-bot {
-      border: 1px dashed rgba(255, 255, 255, 0.3);
-    }
-    
-    .player-list-item.is-bot .player-avatar {
-      background: #6c5ce7;
-      font-size: 1.3rem;
-    }
-    
-    .remove-bot-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(224, 82, 82, 0.2);
-      color: var(--red);
-      cursor: pointer;
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-    
-    .remove-bot-btn:hover {
-      background: rgba(224, 82, 82, 0.4);
-    }
-    
-    .add-bot-btn {
-      margin-bottom: 16px;
-    }
-
-    .waiting-text {
-      color: var(--text-dim);
-      font-size: 0.9rem;
-      margin-bottom: 24px;
-    }
-
-    .mode-selector {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .mode-btn {
-      flex: 1;
-      padding: 16px;
-      background: var(--bg-dark);
-      border: 2px solid #404040;
-      border-radius: 10px;
-      color: var(--text);
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-    }
-
-    .mode-btn.active {
-      border-color: var(--accent);
-      background: rgba(230, 184, 74, 0.1);
-    }
-
-    .mode-btn span {
-      display: block;
       font-size: 0.8rem;
-      color: var(--text-dim);
-      margin-top: 4px;
-    }
-    
-    .difficulty-label {
-      font-size: 0.9rem;
-      color: var(--text-dim);
-      margin-bottom: 10px;
-    }
-    
-    .difficulty-selector {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    
-    .difficulty-btn {
-      flex: 1;
-      padding: 10px 12px;
-      background: var(--bg-dark);
-      border: 2px solid #404040;
-      border-radius: 8px;
-      color: var(--text);
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-      font-size: 0.9rem;
-    }
-    
-    .difficulty-btn.active {
-      border-color: var(--accent);
-      background: rgba(230, 184, 74, 0.1);
-    }
-    
-    .difficulty-btn:hover:not(.active) {
-      border-color: #606060;
+      font-weight: 500;
     }
 
-    /* ============================================
-       SPELSKÄRM
-       ============================================ */
-
-    .game-screen {
-      padding-bottom: 20px;
-    }
-
-    .tableau-container {
-      background: var(--bg-felt) url('gfx/bg_tyg.webp') repeat;
-      border-radius: 20px;
-      padding: 24px;
-      margin-bottom: 20px;
-      box-shadow: 
-        inset 0 2px 10px rgba(0,0,0,0.3),
-        0 8px 32px rgba(0,0,0,0.4);
-    }
-
-    .tableau-title {
-      text-align: center;
-      font-size: 0.9rem;
-      color: rgba(255,255,255,0.8);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin-bottom: 16px;
-      font-weight: 600;
-    }
-
-    .tableau {
-      display: flex;
-      flex-direction: row;
-      justify-content: center;
-      gap: 16px;
-    }
-
-    .suit-column {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      padding: 12px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 12px;
-      min-width: 75px;
-      flex-shrink: 0;
-    }
-
-    .card-stack-upper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      height: 90px;
-      justify-content: flex-end;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-
-    .card-stack-seven {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 76px;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-
-    .card-stack-lower {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      height: 90px;
-      justify-content: flex-start;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-
-    .table-card {
-      width: 52px;
-      height: 72px;
-      background: white;
-      border-radius: 6px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-
-    .table-card.red { color: var(--red); }
-    .table-card.black { color: #222; }
-
-    .table-card .rank { font-size: 1.1rem; }
-    .table-card .suit { font-size: 1.3rem; }
-
-    .table-card.seven {
-      background: linear-gradient(135deg, #fff9e6, #fff);
-      box-shadow: 0 2px 12px rgba(230, 184, 74, 0.4);
-    }
-
-    .table-card.completed {
-      background: linear-gradient(135deg, #e0e0e0, #c8c8c8);
-      opacity: 0.7;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-    }
-
-    .table-card.completed.red { color: #a06060; }
-    .table-card.completed.black { color: #606060; }
-    
-    .table-card.last-played {
-      box-shadow: 0 0 0 3px var(--gold), 0 4px 12px rgba(212, 175, 55, 0.4);
-      transform: scale(1.05);
-      z-index: 10;
-    }
-
-    .card-placeholder {
-      width: 52px;
-      height: 72px;
-      border: 2px dashed rgba(255,255,255,0.3);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: rgba(255,255,255,0.4);
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
-
-    /* ============================================
-       SPELARE
-       ============================================ */
-
-    .players-area {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .player-section {
-      background: var(--bg-card) url('gfx/bg_dark_steel.webp') repeat;
-      border-radius: 14px;
-      padding: 16px 20px;
-      transition: all 0.3s;
-      border: 2px solid transparent;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    }
-
-    .player-section.current-player {
-      border-color: var(--accent);
-      box-shadow: var(--glow), 0 4px 16px rgba(0, 0, 0, 0.3);
-    }
-
-    .player-section.is-me {
-      background: linear-gradient(135deg, rgba(50, 50, 50, 0.8), rgba(50, 50, 50, 0.9)), url('gfx/bg_dark_steel.webp') repeat;
-    }
-
-    .player-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .player-name {
-      font-size: 1.1rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .player-badge {
-      font-size: 0.75rem;
-      padding: 3px 8px;
-      background: var(--accent);
-      color: var(--bg-dark);
-      border-radius: 4px;
-      font-weight: 600;
-    }
-
-    .dealer-badge {
-      font-size: 0.75rem;
-      padding: 3px 8px;
+    .badge-dealer {
       background: rgba(255,255,255,0.15);
       color: var(--text);
-      border-radius: 4px;
-      font-weight: 500;
     }
-    
-    .starter-badge {
-      font-size: 0.75rem;
-      padding: 3px 8px;
+
+    .badge-starter {
       background: rgba(0, 0, 0, 0.4);
       color: #aaa;
-      border-radius: 4px;
-      font-weight: 500;
     }
 
-    .winner-badge {
-      font-size: 0.75rem;
-      padding: 3px 8px;
-      background: linear-gradient(135deg, #ffd700, #ffb700);
-      color: var(--bg-dark);
-      border-radius: 4px;
-      font-weight: 600;
-      animation: winner-glow 1s ease-in-out infinite alternate;
-    }
-
-    @keyframes winner-glow {
-      from { box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
-      to { box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); }
-    }
-
-    .asken-icon {
-      font-size: 1rem;
-    }
-
-    .player-stats {
-      display: flex;
-      gap: 16px;
-      color: var(--text-dim);
-      font-size: 0.85rem;
-    }
-
-    .player-hand-container {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    .player-hand {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      min-height: 90px;
-      align-items: flex-start;
-      flex: 1;
-    }
-
-    .card {
-      width: 56px;
-      height: 78px;
-      background: white;
-      border-radius: 7px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.15s ease-out, border-color 0.15s, box-shadow 0.15s;
-      box-shadow: var(--card-shadow);
-      user-select: none;
-      position: relative;
-      border: 2px solid transparent;
-      -webkit-transform: translateY(0);
-      transform: translateY(0);
-      will-change: transform;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .card.red { color: var(--red); }
-    .card.black { color: #222; }
-
-    @media (hover: hover) {
-      .card:hover:not(.disabled):not(.selected) {
-        -webkit-transform: translateY(-10px);
-        transform: translateY(-10px);
-      }
-    }
-
-    .card.selected {
-      -webkit-transform: translateY(-14px) !important;
-      transform: translateY(-14px) !important;
-      border-color: var(--accent);
-      box-shadow: 0 8px 25px rgba(230, 184, 74, 0.5);
-    }
-
-    .card:not(.selected) {
-      -webkit-transform: translateY(0);
-      transform: translateY(0);
-    }
-
-    .card.playable {
-      background: linear-gradient(135deg, #fffef5, #fff);
-      cursor: pointer;
-    }
-
-    .card.playable::after {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      border: 2px solid var(--green);
-      border-radius: 9px;
-      opacity: 0.6;
-      animation: playable-pulse 2s infinite;
-    }
-
-    @keyframes playable-pulse {
-      0%, 100% { opacity: 0.4; }
-      50% { opacity: 0.8; }
-    }
-
-    .card.disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .card .card-rank {
-      font-size: 1.15rem;
-      line-height: 1;
-    }
-
-    .card .card-suit {
-      font-size: 1.4rem;
-      line-height: 1;
-    }
-
-    /* Kort-baksida (andras kort) */
-    .card-back {
-      width: 32px;
-      height: 46px;
-      background: linear-gradient(135deg, #606060, #4a4a4a);
-      border-radius: 4px;
-      border: 1px solid #707070;
-      box-shadow: 1px 0 2px rgba(0,0,0,0.3);
-      flex-shrink: 0;
-    }
-
-    .hidden-hand {
-      display: flex;
-      flex-wrap: wrap;
-      min-height: 50px;
-      padding-left: 8px;
-    }
-
-    .hidden-hand .card-back {
-      margin-left: -8px;
-    }
-
-    .select-all-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(255,255,255,0.1);
-      color: rgba(255,255,255,0.7);
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .select-all-btn:hover {
-      background: var(--accent);
-      color: var(--bg-dark);
-      transform: scale(1.1);
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    .action-btn {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .action-btn.play {
-      background: var(--green);
-      color: white;
-    }
-
-    .action-btn.play:hover:not(:disabled) {
-      background: #5cbf60;
-    }
-
-    .action-btn.pass {
-      background: var(--red);
-      color: white;
-    }
-
-    .action-btn.pass:hover:not(:disabled) {
-      background: #e86565;
-    }
-
-    .action-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    /* ============================================
-       MODAL
-       ============================================ */
-
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.8);
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-      padding: 20px;
-    }
-
-    .modal-overlay.visible {
-      display: flex;
-    }
-
-    .modal {
-      background: var(--bg-card) url('gfx/bg_dark_steel.webp') repeat;
-      border-radius: 16px;
-      padding: 32px;
-      max-width: 500px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
-    }
-
-    .modal h2 {
-      margin-bottom: 8px;
-    }
-
-    .winner {
-      font-size: 1.3rem;
-      color: var(--accent);
-      margin-bottom: 24px;
-    }
-
-    .score-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-      font-size: 0.9rem;
-    }
-
-    .score-table th,
-    .score-table td {
-      padding: 10px;
-      text-align: center;
-      border-bottom: 1px solid #404040;
-    }
-
-    .score-table th {
-      color: var(--text-dim);
-      font-weight: 500;
-      font-size: 0.8rem;
-    }
-
-    .score-table td:first-child {
-      text-align: left;
-    }
-
-    .score-table .total {
-      font-weight: 600;
-      color: var(--accent);
-    }
-
-    .score-table .asken-cell {
+    .badge-asken {
+      background: rgba(224, 82, 82, 0.2);
       color: var(--red);
     }
-    
-    .score-table .place-cell {
-      font-weight: 600;
-      font-size: 1rem;
-    }
-    
-    .score-table .winner-row {
-      background: rgba(212, 175, 55, 0.15);
-    }
-    
-    .score-table .winner-row td {
-      border-bottom-color: var(--gold);
-    }
 
-    .modal-buttons {
+    .robot-levels {
       display: flex;
       gap: 12px;
-      justify-content: center;
-      margin-top: 16px;
+      margin: 16px 0;
     }
 
-    .modal-btn {
-      padding: 14px 36px;
-      background: var(--accent);
-      border: none;
-      border-radius: 10px;
-      color: var(--bg-dark);
-      font-family: inherit;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .modal-btn:hover {
-      background: #d4a73e;
-      transform: translateY(-2px);
-    }
-
-    .modal-btn.secondary {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.3);
-      color: rgba(255,255,255,0.7);
-    }
-
-    .modal-btn.secondary:hover {
-      background: rgba(255,255,255,0.1);
-      color: white;
-    }
-
-    .modal-hint {
-      font-size: 0.75rem;
-      color: rgba(255,255,255,0.4);
-      margin-top: 16px;
-    }
-
-    .not-host-msg {
-      color: var(--text-dim);
-      font-size: 0.9rem;
-    }
-
-    /* Footer */
-    .game-footer {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin-top: 24px;
-    }
-
-    .quit-btn {
-      padding: 10px 20px;
+    .robot-level {
+      flex: 1;
+      background: rgba(0,0,0,0.2);
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: transparent;
-      color: rgba(255,255,255,0.5);
+      padding: 12px;
+      text-align: center;
+    }
+
+    .robot-level-name {
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .robot-level-desc {
       font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
+      color: var(--text-dim);
     }
 
-    .quit-btn:hover {
-      background: rgba(255,255,255,0.1);
-      color: white;
+    .toc {
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
     }
 
-    /* ============================================
-       RESPONSIV
-       ============================================ */
+    .toc-title {
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--accent);
+    }
+
+    .toc ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .toc li {
+      margin-bottom: 6px;
+    }
+
+    .toc a {
+      color: var(--text);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .toc a:hover {
+      color: var(--accent);
+    }
 
     @media (max-width: 600px) {
-      .tableau {
-        gap: 8px;
+      .manual-card {
+        padding: 20px;
       }
 
-      .suit-column {
-        padding: 8px;
-        min-width: 55px;
+      h1 {
+        font-size: 1.5rem;
       }
 
-      .card-stack-upper,
-      .card-stack-lower {
-        height: 62px;
+      h2 {
+        font-size: 1.1rem;
       }
 
-      .card-stack-seven {
-        height: 58px;
-      }
-
-      .table-card,
-      .card-placeholder {
-        width: 38px;
-        height: 54px;
-      }
-
-      .table-card .rank { font-size: 0.85rem; }
-      .table-card .suit { font-size: 0.95rem; }
-
-      .card {
-        width: 44px;
-        height: 62px;
-      }
-
-      .card-back {
-        width: 26px;
-        height: 38px;
-      }
-
-      .hidden-hand .card-back {
-        margin-left: -6px;
+      .robot-levels {
+        flex-direction: column;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Meny-skärm -->
-    <div class="screen active" id="menuScreen">
-      <div class="menu-card">
+  <div class="manual-container">
+    
+    <!-- Header -->
+    <div class="manual-card">
+      <div class="logo-container">
         <img src="gfx/asken_logo.webp" alt="ASKEN" class="game-logo">
-        <div id="menuError" class="error-msg" style="display: none;"></div>
-        <div class="form-group">
-          <label>Ditt namn</label>
-          <input type="text" id="playerName" placeholder="Ange ditt namn" maxlength="20">
-        </div>
-        <button class="btn btn-primary" onclick="createRoom()">Skapa nytt rum</button>
-        <div class="divider">eller</div>
-        <div class="form-group">
-          <label>Rumskod</label>
-          <input type="text" id="roomCode" class="code-input" placeholder="XXXX" maxlength="4">
-        </div>
-        <button class="btn btn-secondary" onclick="joinRoom()">Gå med i rum</button>
+      </div>
+      <h1>Spelmanual</h1>
+      <p class="subtitle">Lär dig spela det klassiska svenska kortspelet</p>
+      
+      <div class="toc">
+        <div class="toc-title">Innehåll</div>
+        <ul>
+          <li><a href="#intro">1. Introduktion</a></li>
+          <li><a href="#malet">2. Spelets mål</a></li>
+          <li><a href="#spelplan">3. Spelplanen</a></li>
+          <li><a href="#regler">4. Spelregler</a></li>
+          <li><a href="#poang">5. Poängsystem</a></li>
+          <li><a href="#asken">6. Asken</a></li>
+          <li><a href="#strategi">7. Strategi & Tips</a></li>
+          <li><a href="#online">8. Spela online</a></li>
+          <li><a href="#robotar">9. Robotspelare</a></li>
+        </ul>
       </div>
     </div>
 
-    <!-- Lobby-skärm -->
-    <div class="screen" id="lobbyScreen">
-      <div class="lobby-card">
-        <h2>Väntar på spelare...</h2>
-        <div class="room-code-label">Rumskod</div>
-        <div class="room-code-container">
-          <div class="room-code" id="displayRoomCode">XXXX</div>
-          <button class="copy-btn" onclick="copyRoomCode()" title="Kopiera rumskod">📋</button>
-        </div>
-        <div class="player-list" id="lobbyPlayerList"></div>
-        <div id="botButtonContainer"></div>
-        <div id="botDifficultyContainer" style="display: none;">
-          <div class="difficulty-label">Robotarnas intelligens</div>
-          <div class="difficulty-selector">
-            <button class="difficulty-btn active" data-difficulty="dumb" onclick="setBotDifficulty('dumb')">
-              Dum
-            </button>
-            <button class="difficulty-btn" data-difficulty="medium" onclick="setBotDifficulty('medium')">
-              Medel
-            </button>
-            <button class="difficulty-btn" data-difficulty="smart" onclick="setBotDifficulty('smart')">
-              Smart
-            </button>
-          </div>
-        </div>
-        <div class="waiting-text" id="waitingText">Minst 3 spelare krävs för att starta</div>
-        
-        <div id="hostControls" style="display: none;">
-          <div class="mode-selector">
-            <button class="mode-btn active" data-mode="quick" onclick="setMode('quick')">
-              Snabb
-              <span>En runda</span>
-            </button>
-            <button class="mode-btn" data-mode="standard" onclick="setMode('standard')">
-              Standard
-              <span>Till 500 poäng</span>
-            </button>
-          </div>
-          <button class="btn btn-primary" id="startGameBtn" onclick="startGame()" disabled>
-            Starta spel
-          </button>
-        </div>
-        
-        <button class="btn btn-secondary" onclick="leaveRoom()">Lämna rum</button>
+    <!-- Introduktion -->
+    <div class="manual-card" id="intro">
+      <h2><span class="section-icon">🎴</span> 1. Introduktion</h2>
+      <p>
+        <strong>Asken</strong> (även känt som "Sjuan" eller "Fan") är ett klassiskt svenskt kortspel 
+        för 3-7 spelare. Spelet går ut på att bli av med alla sina kort genom att lägga dem i 
+        stigande och fallande sekvenser från sjuorna.
+      </p>
+      <p>
+        Spelet spelas med en vanlig kortlek om 52 kort (utan jokrar). Alla kort delas ut 
+        till spelarna och den som har <span class="card-example black">7♠</span> börjar.
+      </p>
+    </div>
+
+    <!-- Spelets mål -->
+    <div class="manual-card" id="malet">
+      <h2><span class="section-icon">🏆</span> 2. Spelets mål</h2>
+      <p>
+        Målet är att bli av med alla sina kort så snabbt som möjligt. Den som blir av med 
+        sina kort först vinner rundan. När rundan är slut räknas poäng på de kort som 
+        återstår på spelarnas händer.
+      </p>
+      <p>
+        <span class="highlight">Lägst poäng vinner!</span> Den spelare som har lägst totalpoäng 
+        när någon når 500 poäng vinner hela spelet.
+      </p>
+      
+      <div class="tip-box">
+        <div class="tip-box-title">💡 Snabbspel</div>
+        <p style="margin-bottom: 0;">
+          Du kan även spela en snabb variant där ni bara spelar en runda. 
+          Den som får lägst poäng i rundan vinner!
+        </p>
       </div>
     </div>
 
-    <!-- Spel-skärm -->
-    <div class="screen" id="gameScreen">
-      <div id="gameError" class="error-msg game-error" style="display: none;"></div>
-      <div class="tableau-container">
-        <div class="tableau-title" id="tableauTitle">RUNDA 1 • INGEN HAR ASKEN</div>
-        <div class="tableau" id="tableau"></div>
+    <!-- Spelplanen -->
+    <div class="manual-card" id="spelplan">
+      <h2><span class="section-icon">🎯</span> 3. Spelplanen</h2>
+      <p>
+        Spelplanen består av fyra kolumner, en för varje färg (♠ ♥ ♦ ♣). 
+        Varje kolumn byggs ut från sjuan i mitten:
+      </p>
+      <ul>
+        <li><strong>Uppåt:</strong> 8, 9, 10, Knekt, Dam, Kung</li>
+        <li><strong>Nedåt:</strong> 6, 5, 4, 3, 2, Ess</li>
+      </ul>
+      <p>
+        När en kolumn är komplett (från Ess till Kung) tonas den ner för att visa att 
+        den färgen är klar.
+      </p>
+      
+      <h3>Visuella markeringar</h3>
+      <ul>
+        <li>Kort du kan spela lyser upp med en ljusare bakgrund</li>
+        <li>Senast spelade kort markeras med en guldram</li>
+        <li>Valda kort lyfts upp från handen</li>
+      </ul>
+    </div>
+
+    <!-- Spelregler -->
+    <div class="manual-card" id="regler">
+      <h2><span class="section-icon">📜</span> 4. Spelregler</h2>
+      
+      <h3>Spelordning</h3>
+      <ol>
+        <li>Alla kort delas ut till spelarna</li>
+        <li>Den som har <span class="card-example black">7♠</span> börjar och måste lägga den</li>
+        <li>Spelet går sedan medsols</li>
+      </ol>
+      
+      <h3>Lägga kort</h3>
+      <p>På din tur kan du lägga ett eller flera kort:</p>
+      <ul>
+        <li>En <strong>sjua</strong> startar en ny kolumn i den färgen</li>
+        <li>Ett kort som är <strong>ett steg högre eller lägre</strong> än ändkortet i sin färg</li>
+        <li>Du kan lägga <strong>flera kort</strong> i samma drag om de bildar en giltig sekvens</li>
+      </ul>
+      
+      <div class="tip-box">
+        <div class="tip-box-title">💡 Exempel</div>
+        <p style="margin-bottom: 0;">
+          Om spader-raden visar 5-7-9 kan du lägga både 
+          <span class="card-example black">4♠</span> och 
+          <span class="card-example black">10♠</span> i samma drag, 
+          eller bara ett av dem.
+        </p>
       </div>
-
-      <div class="players-area" id="playersArea"></div>
-
-      <div class="game-footer" id="gameFooter">
-        <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
+      
+      <h3>Passa (Ta asken)</h3>
+      <p>
+        Om du inte kan lägga något kort <strong>måste</strong> du passa. 
+        När du passar får du "asken" (se avsnitt 6).
+      </p>
+      
+      <div class="warning-box">
+        <div class="warning-box-title">⚠️ Viktigt</div>
+        <p style="margin-bottom: 0;">
+          Du får <strong>inte</strong> passa om du kan lägga minst ett kort. 
+          Spelet tvingar dig att spela om du kan!
+        </p>
       </div>
     </div>
 
-    <!-- Resultat-modal -->
-    <div class="modal-overlay" id="modal" onclick="handleModalClick(event)">
-      <div class="modal" onclick="event.stopPropagation()">
-        <h2 id="modalTitle">Runda slut!</h2>
-        <div class="winner" id="modalWinner"></div>
-        <table class="score-table" id="scoreTable">
-          <thead>
-            <tr>
-              <th>Spelare</th>
-              <th>Kort</th>
-              <th>Poäng</th>
-              <th>Asken</th>
-              <th>Totalt</th>
-            </tr>
-          </thead>
-          <tbody id="scoreBody"></tbody>
-        </table>
-        <div class="modal-buttons" id="modalButtons"></div>
-        <p class="modal-hint">Klicka utanför för att se spelplanen</p>
+    <!-- Poängsystem -->
+    <div class="manual-card" id="poang">
+      <h2><span class="section-icon">🔢</span> 5. Poängsystem</h2>
+      <p>
+        När en runda är slut (någon blev av med alla kort) räknas poäng på 
+        de kort som återstår på varje spelares hand:
+      </p>
+      
+      <table class="points-table">
+        <thead>
+          <tr>
+            <th>Kort</th>
+            <th>Poäng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Ess (A)</td>
+            <td>25 poäng</td>
+          </tr>
+          <tr>
+            <td>Klädda kort (10, Kn, D, K)</td>
+            <td>10 poäng</td>
+          </tr>
+          <tr>
+            <td>Oklädda kort (2-9)</td>
+            <td>5 poäng</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <p>
+        Den som har <strong>asken</strong> när rundan slutar får dessutom 
+        <span class="highlight">+50 poäng</span> extra!
+      </p>
+    </div>
+
+    <!-- Asken -->
+    <div class="manual-card" id="asken">
+      <h2><span class="section-icon">📦</span> 6. Asken</h2>
+      <p>
+        "Asken" är en osynlig straffmarkör som vandrar mellan spelarna under spelets gång.
+      </p>
+      
+      <h3>Hur får man asken?</h3>
+      <p>
+        Du får asken när du <strong>passar</strong> (inte kan lägga något kort). 
+        Asken vandrar då från föregående innehavare till dig.
+      </p>
+      
+      <h3>Straffpoäng</h3>
+      <p>
+        Den spelare som har asken när rundan slutar får <span class="highlight">+50 poäng</span> 
+        utöver sina kortpoäng. Detta kan vara avgörande för vem som vinner!
+      </p>
+      
+      <div class="tip-box">
+        <div class="tip-box-title">💡 Strategi</div>
+        <p style="margin-bottom: 0;">
+          Försök undvika att passa i slutet av rundan. Ibland kan det vara värt att 
+          spela ett ofördelaktigt kort för att slippa ta asken!
+        </p>
+      </div>
+      
+      <h3>Visuell markering</h3>
+      <p>
+        I spelet visas asken med en 📦-ikon bredvid spelarens namn.
+      </p>
+    </div>
+
+    <!-- Strategi -->
+    <div class="manual-card" id="strategi">
+      <h2><span class="section-icon">🧠</span> 7. Strategi & Tips</h2>
+      
+      <h3>Grundläggande strategi</h3>
+      <ul>
+        <li>
+          <strong>Spela höga kort tidigt:</strong> Ess och klädda kort ger många poäng om du 
+          sitter kvar med dem. Försök bli av med dem så snart du kan.
+        </li>
+        <li>
+          <strong>Blockera försiktigt:</strong> Ibland kan det löna sig att hålla på 6:or och 8:or 
+          för att blockera motståndarna, men se upp så du inte sitter fast med dem!
+        </li>
+        <li>
+          <strong>Räkna kort:</strong> Håll koll på vilka kort som är spelade. Om du vet att 
+          ingen annan kan lägga i en färg kan du vänta strategiskt.
+        </li>
+      </ul>
+      
+      <h3>Avancerade tips</h3>
+      <ul>
+        <li>
+          <strong>Planera framåt:</strong> Tänk inte bara på detta drag utan även på nästa. 
+          Vilka kort kommer bli spelbara efter att du lagt?
+        </li>
+        <li>
+          <strong>Töm en färg:</strong> Om du kan bli helt av med en färg har du ett 
+          mindre problem att hantera.
+        </li>
+        <li>
+          <strong>Undvik asken i slutet:</strong> Passa tidigt i rundan om du måste, 
+          inte i slutet när risken är stor att rundan tar slut.
+        </li>
+      </ul>
+      
+      <div class="warning-box">
+        <div class="warning-box-title">⚠️ Vanligt misstag</div>
+        <p style="margin-bottom: 0;">
+          Att hålla på sjuor för länge! När du har en sjua kan du starta en ny kolumn 
+          när som helst, men väntar du för länge kan du bli blockerad.
+        </p>
       </div>
     </div>
+
+    <!-- Spela online -->
+    <div class="manual-card" id="online">
+      <h2><span class="section-icon">🌐</span> 8. Spela online</h2>
+      
+      <h3>Skapa ett rum</h3>
+      <ol>
+        <li>Ange ditt namn</li>
+        <li>Klicka "Skapa nytt rum"</li>
+        <li>Dela rumskoden med dina vänner (klicka 📋 för att kopiera)</li>
+        <li>Vänta tills minst 3 spelare har gått med</li>
+        <li>Välj speltyp (Snabb eller Standard)</li>
+        <li>Klicka "Starta spel"</li>
+      </ol>
+      
+      <h3>Gå med i ett rum</h3>
+      <ol>
+        <li>Ange ditt namn</li>
+        <li>Skriv in rumskoden (4 tecken)</li>
+        <li>Klicka "Gå med i rum"</li>
+      </ol>
+      
+      <h3>Speltyper</h3>
+      <ul>
+        <li><strong>Snabb:</strong> En runda - lägst poäng vinner direkt</li>
+        <li><strong>Standard:</strong> Spela tills någon når 500 poäng - lägst totalpoäng vinner</li>
+      </ul>
+      
+      <h3>Markeringar i spelet</h3>
+      <ul>
+        <li><span class="badge badge-dealer">Gav</span> - Spelaren som delade ut korten</li>
+        <li><span class="badge badge-starter">Började</span> - Spelaren som hade ♠7 och startade</li>
+        <li>📦 - Spelaren som har asken just nu</li>
+      </ul>
+    </div>
+
+    <!-- Robotspelare -->
+    <div class="manual-card" id="robotar">
+      <h2><span class="section-icon">🤖</span> 9. Robotspelare</h2>
+      <p>
+        Om ni är för få spelare kan värden lägga till robotspelare. 
+        Klicka på "🤖 Lägg till robot" i lobbyn.
+      </p>
+      
+      <h3>Svårighetsgrader</h3>
+      <p>När du har lagt till minst en robot kan du välja deras intelligens:</p>
+      
+      <div class="robot-levels">
+        <div class="robot-level">
+          <div class="robot-level-name">Dum</div>
+          <div class="robot-level-desc">Spelar slumpmässigt</div>
+        </div>
+        <div class="robot-level">
+          <div class="robot-level-name">Medel</div>
+          <div class="robot-level-desc">Prioriterar många kort och höga poäng</div>
+        </div>
+        <div class="robot-level">
+          <div class="robot-level-name">Smart</div>
+          <div class="robot-level-desc">Avancerad strategi med framåtplanering</div>
+        </div>
+      </div>
+      
+      <h3>Vad gör en smart robot?</h3>
+      <ul>
+        <li>Planerar framåt och simulerar kommande drag</li>
+        <li>Prioriterar att avsluta färger (ess och kungar)</li>
+        <li>Undviker att öppna upp för motståndare</li>
+        <li>Försöker tömma hela färger</li>
+        <li>Fokuserar på att bli av med höga poäng</li>
+      </ul>
+    </div>
+
+    <!-- Tillbaka-knapp -->
+    <div class="manual-card">
+      <a href="index.html" class="btn btn-primary">🎮 Tillbaka till spelet</a>
+    </div>
+
   </div>
-
-  <script>
-    // ============================================
-    // KONSTANTER
-    // ============================================
-
-    const SUITS = ['spades', 'hearts', 'clubs', 'diamonds'];
-    const SUIT_SYMBOLS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
-    const SUIT_COLORS = { spades: 'black', hearts: 'red', diamonds: 'red', clubs: 'black' };
-    const RANK_NAMES = { 
-      1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 
-      8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K' 
-    };
-
-    // ============================================
-    // STATE
-    // ============================================
-
-    let socket = null;
-    let gameState = null;
-    let selectedCardIds = [];
-    let selectedMode = 'quick';
-    
-    // För reconnect
-    let currentRoomCode = null;
-    let currentPlayerName = null;
-    let keepaliveInterval = null;
-
-    // ============================================
-    // SOCKET ANSLUTNING
-    // ============================================
-
-    function connectSocket() {
-      socket = io({
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        timeout: 20000
-      });
-
-      socket.on('connect', () => {
-        console.log('Ansluten till server');
-        
-        // Försök återansluta till rum om vi var i ett
-        if (currentRoomCode && currentPlayerName) {
-          console.log('Försöker återansluta till rum:', currentRoomCode);
-          socket.emit('rejoinRoom', { 
-            code: currentRoomCode, 
-            name: currentPlayerName 
-          });
-        }
-        
-        // Starta keepalive-ping var 30:e sekund
-        if (keepaliveInterval) clearInterval(keepaliveInterval);
-        keepaliveInterval = setInterval(() => {
-          if (socket && socket.connected) {
-            socket.emit('ping');
-          }
-        }, 30000);
-      });
-
-      socket.on('roomCreated', ({ code }) => {
-        currentRoomCode = code;
-        currentPlayerName = document.getElementById('playerName').value.trim();
-        document.getElementById('displayRoomCode').textContent = code;
-        showScreen('lobbyScreen');
-      });
-
-      socket.on('roomJoined', ({ code }) => {
-        currentRoomCode = code;
-        currentPlayerName = document.getElementById('playerName').value.trim();
-        document.getElementById('displayRoomCode').textContent = code;
-        showScreen('lobbyScreen');
-      });
-      
-      socket.on('rejoinSuccess', ({ code }) => {
-        currentRoomCode = code;
-        document.getElementById('displayRoomCode').textContent = code;
-        console.log('Återansluten till rum:', code);
-      });
-      
-      socket.on('rejoinFailed', ({ message }) => {
-        console.log('Kunde inte återansluta:', message);
-        currentRoomCode = null;
-        currentPlayerName = null;
-        showScreen('menuScreen');
-        showError('Rummet finns inte längre. Skapa ett nytt.');
-      });
-
-      socket.on('gameState', (state) => {
-        gameState = state;
-        currentRoomCode = state.code;
-        selectedCardIds = [];
-        render();
-      });
-
-      socket.on('cardsSelected', (cardIds) => {
-        selectedCardIds = cardIds;
-        render();
-      });
-
-      socket.on('error', ({ message }) => {
-        showError(message);
-      });
-      
-      // När spelet avbryts av en annan spelare
-      socket.on('gameEnded', ({ playerName, reason }) => {
-        document.getElementById('modal').classList.remove('visible');
-        gameState = null;
-        selectedCardIds = [];
-        currentRoomCode = null;
-        currentPlayerName = null;
-        showScreen('menuScreen');
-        showError(`Spelet avslutades: ${playerName} har lämnat spelet`);
-      });
-      
-      socket.on('hostEndedGame', () => {
-        document.getElementById('modal').classList.remove('visible');
-        gameState = null;
-        selectedCardIds = [];
-        currentRoomCode = null;
-        currentPlayerName = null;
-        showScreen('menuScreen');
-        showError('Värden har avslutat spelet');
-      });
-      
-      // När värden startar nästa runda - stäng modal för alla
-      socket.on('closeModal', () => {
-        document.getElementById('modal').classList.remove('visible');
-      });
-
-      socket.on('disconnect', (reason) => {
-        console.log('Frånkopplad från server:', reason);
-        
-        // Rensa keepalive
-        if (keepaliveInterval) {
-          clearInterval(keepaliveInterval);
-          keepaliveInterval = null;
-        }
-        
-        // Om det inte var en manuell frånkoppling, visa meddelande
-        if (reason !== 'io client disconnect') {
-          showError('Tappad anslutning - försöker återansluta...');
-        }
-      });
-      
-      socket.on('reconnect', (attemptNumber) => {
-        console.log('Återansluten efter', attemptNumber, 'försök');
-      });
-      
-      socket.on('reconnect_error', (error) => {
-        console.log('Återanslutningsfel:', error.message);
-      });
-      
-      socket.on('reconnect_failed', () => {
-        showScreen('menuScreen');
-        showError('Kunde inte återansluta. Försök igen.');
-        currentRoomCode = null;
-        currentPlayerName = null;
-      });
-    }
-
-    // ============================================
-    // SKÄRM-HANTERING
-    // ============================================
-
-    function showScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(screenId).classList.add('active');
-    }
-
-    function showError(message) {
-      // Visa på spelskärmen om vi är där, annars på menyn
-      const gameScreen = document.getElementById('gameScreen');
-      const isInGame = gameScreen.classList.contains('active');
-      
-      const errorEl = document.getElementById(isInGame ? 'gameError' : 'menuError');
-      errorEl.textContent = message;
-      errorEl.style.display = 'block';
-      
-      // Återställ animation
-      errorEl.style.animation = 'none';
-      errorEl.offsetHeight; // Trigger reflow
-      errorEl.style.animation = null;
-      
-      setTimeout(() => {
-        errorEl.style.display = 'none';
-      }, 6000);
-    }
-
-    // ============================================
-    // MENY-FUNKTIONER
-    // ============================================
-
-    function createRoom() {
-      const name = document.getElementById('playerName').value.trim();
-      if (!name) {
-        showError('Ange ditt namn');
-        return;
-      }
-      if (!socket) connectSocket();
-      socket.emit('createRoom', name);
-    }
-
-    function joinRoom() {
-      const name = document.getElementById('playerName').value.trim();
-      const code = document.getElementById('roomCode').value.trim().toUpperCase();
-      
-      if (!name) {
-        showError('Ange ditt namn');
-        return;
-      }
-      if (!code || code.length !== 4) {
-        showError('Ange en giltig rumskod (4 tecken)');
-        return;
-      }
-      
-      if (!socket) connectSocket();
-      socket.emit('joinRoom', { code, name });
-    }
-
-    function leaveRoom() {
-      if (socket) {
-        socket.emit('leaveRoom');
-      }
-      gameState = null;
-      selectedCardIds = [];
-      currentRoomCode = null;
-      currentPlayerName = null;
-      showScreen('menuScreen');
-    }
-    
-    function hostEndGame() {
-      if (socket) {
-        socket.emit('hostEndGame');
-      }
-      document.getElementById('modal').classList.remove('visible');
-      gameState = null;
-      selectedCardIds = [];
-      currentRoomCode = null;
-      currentPlayerName = null;
-      showScreen('menuScreen');
-    }
-    
-    function addBot() {
-      if (socket) {
-        socket.emit('addBot');
-      }
-    }
-    
-    function removeBot(botId) {
-      if (socket) {
-        socket.emit('removeBot', botId);
-      }
-    }
-    
-    function copyRoomCode() {
-      const code = document.getElementById('displayRoomCode').textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        const btn = document.querySelector('.copy-btn');
-        btn.textContent = '✓';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = '📋';
-          btn.classList.remove('copied');
-        }, 2000);
-      });
-    }
-    
-    function setBotDifficulty(difficulty) {
-      if (socket) {
-        socket.emit('setBotDifficulty', difficulty);
-      }
-      // Uppdatera knapparna lokalt direkt för snabbare respons
-      document.querySelectorAll('.difficulty-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.difficulty === difficulty);
-      });
-    }
-
-    function setMode(mode) {
-      selectedMode = mode;
-      document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mode === mode);
-      });
-    }
-
-    function startGame() {
-      socket.emit('startGame', selectedMode);
-    }
-
-    // ============================================
-    // SPELLOGIK
-    // ============================================
-
-    function toggleCard(cardId) {
-      if (!gameState || gameState.roundEnded) return;
-      
-      const me = gameState.players.find(p => p.isMe);
-      if (!me || !me.isCurrent) return;
-      
-      // Kolla om kortet är spelbart
-      if (!gameState.playableCardIds?.includes(cardId)) return;
-      
-      const index = selectedCardIds.indexOf(cardId);
-      if (index >= 0) {
-        selectedCardIds.splice(index, 1);
-      } else {
-        selectedCardIds.push(cardId);
-      }
-      
-      render();
-    }
-
-    function selectAllPlayable() {
-      if (!gameState || gameState.roundEnded) return;
-      if (!gameState.playableCardIds) return;
-      
-      selectedCardIds = [...gameState.playableCardIds];
-      render();
-    }
-
-    function playCards() {
-      if (selectedCardIds.length === 0) return;
-      
-      console.log('Försöker spela kort:', selectedCardIds);
-      console.log('Nuvarande tableau:', gameState.tableau);
-      
-      // Validera på klientsidan först
-      if (!validateSelectedCards()) {
-        console.log('Klient-validering misslyckades');
-        showError('Ogiltigt val - korten kan inte spelas tillsammans');
-        return;
-      }
-      
-      console.log('Klient-validering OK, skickar till server');
-      socket.emit('playCards', selectedCardIds);
-      // Rensa INTE här - vänta på gameState från servern
-    }
-    
-    // Klient-validering av valda kort
-    function validateSelectedCards() {
-      if (selectedCardIds.length === 0) return false;
-      if (!gameState || !gameState.tableau) return false;
-      
-      const me = gameState.players.find(p => p.isMe);
-      if (!me || !me.hand) return false;
-      
-      const selectedCards = selectedCardIds
-        .map(id => me.hand.find(c => c.id === id))
-        .filter(Boolean);
-      
-      if (selectedCards.length !== selectedCardIds.length) return false;
-      
-      console.log('Validerar kort:', selectedCards.map(c => `${c.suit}-${c.rank}`));
-      
-      // Simulera getPlayableOrder
-      const simTableau = {
-        spades: gameState.tableau.spades ? { ...gameState.tableau.spades } : null,
-        hearts: gameState.tableau.hearts ? { ...gameState.tableau.hearts } : null,
-        clubs: gameState.tableau.clubs ? { ...gameState.tableau.clubs } : null,
-        diamonds: gameState.tableau.diamonds ? { ...gameState.tableau.diamonds } : null
-      };
-      
-      console.log('Startar med tableau:', JSON.stringify(simTableau));
-      
-      const remaining = [...selectedCards];
-      
-      while (remaining.length > 0) {
-        let foundPlayable = false;
-        
-        for (let i = 0; i < remaining.length; i++) {
-          const card = remaining[i];
-          const canPlay = canPlayCardClient(card, simTableau);
-          console.log(`Kan ${card.suit}-${card.rank} spelas?`, canPlay);
-          
-          if (canPlay) {
-            remaining.splice(i, 1);
-            
-            if (!simTableau[card.suit]) {
-              simTableau[card.suit] = { low: card.rank, high: card.rank };
-            } else {
-              if (card.rank < simTableau[card.suit].low) {
-                simTableau[card.suit].low = card.rank;
-              }
-              if (card.rank > simTableau[card.suit].high) {
-                simTableau[card.suit].high = card.rank;
-              }
-            }
-            
-            console.log('Uppdaterat tableau:', JSON.stringify(simTableau));
-            foundPlayable = true;
-            break;
-          }
-        }
-        
-        if (!foundPlayable) {
-          console.log('Kunde inte hitta spelbart kort, kvar:', remaining.map(c => `${c.suit}-${c.rank}`));
-          return false;
-        }
-      }
-      
-      console.log('Alla kort kan spelas!');
-      return true;
-    }
-    
-    function canPlayCardClient(card, tableau) {
-      const anyCardPlayed = Object.values(tableau).some(s => s !== null);
-      if (!anyCardPlayed) {
-        return card.suit === 'spades' && card.rank === 7;
-      }
-      
-      const suitState = tableau[card.suit];
-      
-      if (!suitState) {
-        return card.rank === 7;
-      }
-      
-      return card.rank === suitState.low - 1 || card.rank === suitState.high + 1;
-    }
-
-    function pass() {
-      socket.emit('pass');
-    }
-
-    function nextRound() {
-      socket.emit('nextRound');
-      document.getElementById('modal').classList.remove('visible');
-    }
-
-    function newGame() {
-      socket.emit('newGame');
-      document.getElementById('modal').classList.remove('visible');
-    }
-
-    function handleModalClick(event) {
-      if (event.target.id === 'modal') {
-        document.getElementById('modal').classList.remove('visible');
-      }
-    }
-
-    // ============================================
-    // RENDERING
-    // ============================================
-
-    function render() {
-      if (!gameState) return;
-
-      if (gameState.state === 'lobby') {
-        renderLobby();
-        showScreen('lobbyScreen');
-      } else {
-        renderGame();
-        showScreen('gameScreen');
-        
-        if (gameState.roundEnded) {
-          setTimeout(() => showResultModal(), 500);
-        }
-      }
-    }
-
-    function renderLobby() {
-      const list = document.getElementById('lobbyPlayerList');
-      const isHost = gameState.players.find(p => p.isMe)?.isHost;
-      const hasBots = gameState.hasBots || gameState.players.some(p => p.isBot);
-      
-      list.innerHTML = gameState.players.map(p => `
-        <div class="player-list-item ${p.isMe ? 'is-me' : ''} ${p.isBot ? 'is-bot' : ''}">
-          <div class="player-avatar">${p.isBot ? '🤖' : p.name.charAt(0).toUpperCase()}</div>
-          <div class="player-info">
-            <div class="name">${p.name}${p.isMe ? ' (du)' : ''}</div>
-            <div class="role">${p.isHost ? 'Värd' : (p.isBot ? 'Robot' : 'Spelare')}</div>
-          </div>
-          ${p.isHost ? '<span class="host-badge">VÄRD</span>' : ''}
-          ${p.isBot && isHost ? `<button class="remove-bot-btn" onclick="removeBot('${p.id}')">✕</button>` : ''}
-        </div>
-      `).join('');
-
-      const canStart = gameState.players.length >= 3;
-      const canAddBot = gameState.players.length < 7;
-      
-      document.getElementById('hostControls').style.display = isHost ? 'block' : 'none';
-      document.getElementById('startGameBtn').disabled = !canStart;
-      
-      // Uppdatera robot-knappen
-      const botBtnContainer = document.getElementById('botButtonContainer');
-      if (botBtnContainer) {
-        botBtnContainer.innerHTML = isHost && canAddBot ? `
-          <button class="btn btn-secondary add-bot-btn" onclick="addBot()">
-            🤖 Lägg till robot
-          </button>
-        ` : '';
-      }
-      
-      // Visa/göm svårighetsgrad för robotar
-      const difficultyContainer = document.getElementById('botDifficultyContainer');
-      if (difficultyContainer) {
-        difficultyContainer.style.display = (isHost && hasBots) ? 'block' : 'none';
-        
-        // Uppdatera aktiv knapp
-        const currentDifficulty = gameState.botDifficulty || 'dumb';
-        document.querySelectorAll('.difficulty-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.difficulty === currentDifficulty);
-        });
-      }
-      
-      document.getElementById('waitingText').textContent = canStart 
-        ? `${gameState.players.length} spelare redo`
-        : `Minst 3 spelare krävs (${gameState.players.length}/3)`;
-    }
-
-    function renderGame() {
-      renderTableau();
-      renderPlayers();
-      renderInfo();
-      renderGameFooter();
-    }
-    
-    function renderGameFooter() {
-      const footer = document.getElementById('gameFooter');
-      const isHost = gameState.players.find(p => p.isMe)?.isHost;
-      const isRoundEnd = gameState.roundEnded || gameState.state === 'roundEnd';
-      const isGameOver = gameState.isGameOver;
-      
-      if (isHost && isRoundEnd) {
-        footer.innerHTML = `
-          <button class="modal-btn" onclick="${isGameOver ? 'newGame()' : 'nextRound()'}">
-            ${isGameOver ? 'Nytt spel' : 'Nästa runda'}
-          </button>
-          <button class="modal-btn secondary" onclick="hostEndGame()">Avsluta</button>
-        `;
-      } else {
-        footer.innerHTML = `
-          <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
-        `;
-      }
-    }
-
-    function renderTableau() {
-      const container = document.getElementById('tableau');
-      container.innerHTML = '';
-      
-      const lastPlayed = gameState.lastPlayedCards || [];
-
-      for (const suit of SUITS) {
-        const suitState = gameState.tableau[suit];
-        const colorClass = SUIT_COLORS[suit];
-        
-        const column = document.createElement('div');
-        column.className = 'suit-column';
-
-        // Övre delen
-        const upperStack = document.createElement('div');
-        upperStack.className = 'card-stack-upper';
-
-        if (suitState && suitState.high > 7) {
-          const highCard = document.createElement('div');
-          const isKing = suitState.high === 13;
-          const isLastPlayed = lastPlayed.includes(`${suit}-${suitState.high}`);
-          highCard.className = `table-card ${colorClass}${isKing ? ' completed' : ''}${isLastPlayed ? ' last-played' : ''}`;
-          highCard.innerHTML = `
-            <span class="rank">${RANK_NAMES[suitState.high]}</span>
-            <span class="suit">${SUIT_SYMBOLS[suit]}</span>
-          `;
-          upperStack.appendChild(highCard);
-        } else {
-          const placeholder = document.createElement('div');
-          placeholder.className = 'card-placeholder';
-          placeholder.textContent = suitState ? '8' : '';
-          placeholder.style.visibility = suitState ? 'visible' : 'hidden';
-          upperStack.appendChild(placeholder);
-        }
-
-        column.appendChild(upperStack);
-
-        // Mitten (7:an)
-        const sevenStack = document.createElement('div');
-        sevenStack.className = 'card-stack-seven';
-
-        if (suitState) {
-          const sevenCard = document.createElement('div');
-          const isLastPlayed = lastPlayed.includes(`${suit}-7`);
-          sevenCard.className = `table-card ${colorClass} seven${isLastPlayed ? ' last-played' : ''}`;
-          sevenCard.innerHTML = `
-            <span class="rank">7</span>
-            <span class="suit">${SUIT_SYMBOLS[suit]}</span>
-          `;
-          sevenStack.appendChild(sevenCard);
-        } else {
-          const placeholder = document.createElement('div');
-          placeholder.className = 'card-placeholder';
-          placeholder.textContent = '7';
-          sevenStack.appendChild(placeholder);
-        }
-
-        column.appendChild(sevenStack);
-
-        // Nedre delen
-        const lowerStack = document.createElement('div');
-        lowerStack.className = 'card-stack-lower';
-
-        if (suitState && suitState.low < 7) {
-          const lowCard = document.createElement('div');
-          const isAce = suitState.low === 1;
-          const isLastPlayed = lastPlayed.includes(`${suit}-${suitState.low}`);
-          lowCard.className = `table-card ${colorClass}${isAce ? ' completed' : ''}${isLastPlayed ? ' last-played' : ''}`;
-          lowCard.innerHTML = `
-            <span class="rank">${RANK_NAMES[suitState.low]}</span>
-            <span class="suit">${SUIT_SYMBOLS[suit]}</span>
-          `;
-          lowerStack.appendChild(lowCard);
-        } else {
-          const placeholder = document.createElement('div');
-          placeholder.className = 'card-placeholder';
-          placeholder.textContent = suitState ? '6' : '';
-          placeholder.style.visibility = suitState ? 'visible' : 'hidden';
-          lowerStack.appendChild(placeholder);
-        }
-
-        column.appendChild(lowerStack);
-        container.appendChild(column);
-      }
-    }
-
-    function renderPlayers() {
-      const container = document.getElementById('playersArea');
-      container.innerHTML = '';
-
-      // Sortera så att egen spelare visas först
-      const sortedPlayers = [...gameState.players].sort((a, b) => {
-        if (a.isMe) return -1;
-        if (b.isMe) return 1;
-        return 0;
-      });
-
-      for (const player of sortedPlayers) {
-        const section = document.createElement('div');
-        section.className = `player-section ${player.isCurrent && !gameState.roundEnded ? 'current-player' : ''} ${player.isMe ? 'is-me' : ''} ${player.isWinner ? 'winner' : ''} ${player.isBot ? 'is-bot' : ''}`;
-
-        const hasPlayable = gameState.playableCardIds?.length > 0;
-        const canPass = player.isCurrent && player.isMe && !hasPlayable && !gameState.roundEnded;
-
-        section.innerHTML = `
-          <div class="player-header">
-            <div class="player-name">
-              ${player.isBot ? '🤖 ' : ''}${player.name}${player.isMe ? ' (du)' : ''}
-              ${player.isDealer ? '<span class="dealer-badge">Gav</span>' : ''}
-              ${player.isStarter ? '<span class="starter-badge">Började</span>' : ''}
-              ${player.isWinner ? '<span class="winner-badge">🏆 Vinnare!</span>' : ''}
-              ${player.isCurrent && !gameState.roundEnded ? '<span class="player-badge">Spelar</span>' : ''}
-              ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
-            </div>
-            <div class="player-stats">
-              <span>${player.cardCount} kort</span>
-              <span>•</span>
-              <span>Poäng: ${player.score}</span>
-            </div>
-          </div>
-          ${player.isMe && player.hand ? renderOwnHand(player) : renderHiddenHand(player.cardCount)}
-          ${player.isMe && player.isCurrent && !gameState.roundEnded ? `
-            <div class="action-buttons">
-              <button class="action-btn play" onclick="playCards()" ${selectedCardIds.length === 0 || !validateSelectedCards() ? 'disabled' : ''}>
-                Spela ${selectedCardIds.length > 0 ? '(' + selectedCardIds.length + ' kort)' : ''}
-              </button>
-              <button class="action-btn pass" onclick="pass()" ${!canPass ? 'disabled' : ''}>
-                Passa ${canPass ? '(ta asken)' : ''}
-              </button>
-            </div>
-          ` : ''}
-        `;
-
-        container.appendChild(section);
-      }
-    }
-
-    function renderOwnHand(player) {
-      const hasPlayable = gameState.playableCardIds?.length > 0 && player.isCurrent && !gameState.roundEnded;
-      
-      return `
-        <div class="player-hand-container">
-          <div class="player-hand">
-            ${player.hand.map(card => {
-              const isPlayable = gameState.playableCardIds?.includes(card.id) && player.isCurrent && !gameState.roundEnded;
-              const isSelected = selectedCardIds.includes(card.id);
-              const colorClass = SUIT_COLORS[card.suit];
-              return `
-                <div class="card ${colorClass} ${isPlayable ? 'playable' : 'disabled'} ${isSelected ? 'selected' : ''}"
-                     onclick="toggleCard('${card.id}')">
-                  <span class="card-rank">${RANK_NAMES[card.rank]}</span>
-                  <span class="card-suit">${SUIT_SYMBOLS[card.suit]}</span>
-                </div>
-              `;
-            }).join('')}
-          </div>
-          ${hasPlayable ? `
-            <button class="select-all-btn" onclick="selectAllPlayable()" title="Välj alla spelbara kort">
-              💡
-            </button>
-          ` : ''}
-        </div>
-      `;
-    }
-
-    function renderHiddenHand(count) {
-      return `
-        <div class="hidden-hand">
-          ${Array(count).fill('<div class="card-back"></div>').join('')}
-        </div>
-      `;
-    }
-
-    function renderInfo() {
-      let titleText = `RUNDA ${gameState.roundNumber}`;
-      
-      if (gameState.roundEnded && gameState.roundWinners.length > 0) {
-        if (gameState.roundWinners.length === 1) {
-          titleText += ` SLUT • 🏆 ${gameState.roundWinners[0].name.toUpperCase()} VANN!`;
-        } else {
-          const names = gameState.roundWinners.map(w => w.name.toUpperCase());
-          let winnerText;
-          if (names.length === 2) {
-            winnerText = names[0] + ' OCH ' + names[1];
-          } else {
-            const last = names.pop();
-            winnerText = names.join(', ') + ' OCH ' + last;
-          }
-          titleText += ` SLUT • 🏆 ${winnerText} DELAR VINSTEN!`;
-        }
-      } else if (gameState.askenHolderId) {
-        const holder = gameState.players.find(p => p.id === gameState.askenHolderId);
-        titleText += ` • ${holder?.name?.toUpperCase() || 'OKÄND'} HAR ASKEN`;
-      } else {
-        titleText += ' • INGEN HAR ASKEN';
-      }
-      
-      document.getElementById('tableauTitle').textContent = titleText;
-    }
-
-    function showResultModal() {
-      const isGameOver = gameState.isGameOver;
-      
-      document.getElementById('modalTitle').textContent = isGameOver ? 'Spelet slut!' : `Runda ${gameState.roundNumber} slut!`;
-      
-      // Bestäm vinnare
-      let winners;
-      if (isGameOver) {
-        // Spelvinnare = lägst TOTALPOÄNG
-        const lowestTotal = Math.min(...gameState.players.map(p => p.score));
-        winners = gameState.players.filter(p => p.score === lowestTotal);
-      } else {
-        // Rundvinnare = lägst poäng DENNA RUNDA (kommer från servern)
-        winners = gameState.roundWinners;
-      }
-      
-      if (winners.length === 1) {
-        const winText = isGameOver ? 'vinner spelet!' : 'vinner rundan!';
-        document.getElementById('modalWinner').textContent = `🏆 ${winners[0].name} ${winText}`;
-      } else {
-        const names = winners.map(w => w.name);
-        let winnerText;
-        if (names.length === 2) {
-          winnerText = names[0] + ' och ' + names[1];
-        } else {
-          const last = names.pop();
-          winnerText = names.join(', ') + ' och ' + last;
-        }
-        const winText = isGameOver ? 'delar på segern!' : 'delar på vinsten!';
-        document.getElementById('modalWinner').textContent = `🏆 ${winnerText} ${winText}`;
-      }
-
-      // Sortera spelare för tabellen
-      let playersToShow = [...gameState.players];
-      if (isGameOver) {
-        // Sortera efter totalpoäng (lägst först = bäst placering)
-        playersToShow.sort((a, b) => a.score - b.score);
-      }
-      
-      // Uppdatera tabellhuvud
-      const thead = document.querySelector('#scoreTable thead tr');
-      if (isGameOver) {
-        thead.innerHTML = `
-          <th>Plats</th>
-          <th>Spelare</th>
-          <th>Kort</th>
-          <th>Poäng</th>
-          <th>Asken</th>
-          <th>Totalt</th>
-        `;
-      } else {
-        thead.innerHTML = `
-          <th>Spelare</th>
-          <th>Kort</th>
-          <th>Poäng</th>
-          <th>Asken</th>
-          <th>Totalt</th>
-        `;
-      }
-
-      // Poängtabell
-      const tbody = document.getElementById('scoreBody');
-      let currentPlace = 0;
-      let lastScore = -1;
-      
-      tbody.innerHTML = playersToShow.map((p, index) => {
-        // Hitta rundpoäng för denna spelare
-        const roundScore = gameState.roundScores?.find(rs => rs.playerId === p.id);
-        const cardPoints = roundScore ? roundScore.cardPoints : 0;
-        const askenPoints = roundScore ? roundScore.askenPoints : 0;
-        
-        // Beräkna placering (hantera delade placeringar)
-        if (p.score !== lastScore) {
-          currentPlace = index + 1;
-          lastScore = p.score;
-        }
-        
-        const placeEmoji = currentPlace === 1 ? '🥇' : currentPlace === 2 ? '🥈' : currentPlace === 3 ? '🥉' : '💀';
-        const placeText = `${placeEmoji} ${currentPlace}`;
-        
-        if (isGameOver) {
-          return `
-            <tr class="${currentPlace === 1 ? 'winner-row' : ''}">
-              <td class="place-cell">${placeText}</td>
-              <td>${p.name}${p.isMe ? ' (du)' : ''}</td>
-              <td>${p.cardCount}</td>
-              <td>${cardPoints}</td>
-              <td class="${askenPoints > 0 ? 'asken-cell' : ''}">${askenPoints > 0 ? '+' + askenPoints : '—'}</td>
-              <td class="total">${p.score}</td>
-            </tr>
-          `;
-        } else {
-          return `
-            <tr>
-              <td>${p.name}${p.isMe ? ' (du)' : ''}</td>
-              <td>${p.cardCount}</td>
-              <td>${cardPoints}</td>
-              <td class="${askenPoints > 0 ? 'asken-cell' : ''}">${askenPoints > 0 ? '+' + askenPoints : '—'}</td>
-              <td class="total">${p.score}</td>
-            </tr>
-          `;
-        }
-      }).join('');
-
-      // Knappar
-      const isHost = gameState.players.find(p => p.isMe)?.isHost;
-      const buttonsHtml = isHost ? `
-        <button class="modal-btn" onclick="${isGameOver ? 'newGame()' : 'nextRound()'}">
-          ${isGameOver ? 'Nytt spel' : 'Nästa runda'}
-        </button>
-        <button class="modal-btn secondary" onclick="hostEndGame()">Avsluta</button>
-      ` : `
-        <p class="not-host-msg">Väntar på att värden ska fortsätta...</p>
-      `;
-      document.getElementById('modalButtons').innerHTML = buttonsHtml;
-
-      document.getElementById('modal').classList.add('visible');
-    }
-
-    // ============================================
-    // INIT
-    // ============================================
-
-    document.addEventListener('DOMContentLoaded', () => {
-      connectSocket();
-      
-      // Enter-tangent för att gå med
-      document.getElementById('roomCode').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') joinRoom();
-      });
-      document.getElementById('playerName').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          const code = document.getElementById('roomCode').value.trim();
-          if (code.length === 4) {
-            joinRoom();
-          } else {
-            createRoom();
-          }
-        }
-      });
-    });
-  </script>
 </body>
 </html>
