@@ -1505,7 +1505,11 @@
     function showInviteModal() {
       document.getElementById('inviteName').value = '';
       document.getElementById('inviteLinkContainer').style.display = 'none';
-      document.getElementById('generateLinkBtn').textContent = 'Skapa länk';
+      document.getElementById('inviteLinkBox').textContent = '';
+      document.getElementById('inviteLinkBox').classList.remove('copied');
+      const btn = document.getElementById('generateLinkBtn');
+      btn.textContent = 'Skapa länk';
+      btn.onclick = generateInviteLink;
       document.getElementById('inviteModal').classList.add('visible');
     }
     
