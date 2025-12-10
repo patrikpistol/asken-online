@@ -166,9 +166,7 @@
     }
     
     .rules-link {
-      display: block;
-      text-align: center;
-      margin-top: 16px;
+      display: inline;
       color: var(--text-dim);
       text-decoration: none;
       font-size: 0.9rem;
@@ -177,6 +175,11 @@
     
     .rules-link:hover {
       color: var(--accent);
+    }
+    
+    .footer-links {
+      text-align: center;
+      margin-top: 16px;
     }
 
     .divider {
@@ -1159,7 +1162,11 @@
           </div>
         </div>
         <button class="btn btn-primary" id="mainActionBtn" onclick="mainAction()">Skapa nytt rum</button>
-        <a href="manual.html" class="rules-link">Spelregler</a>
+        <div class="footer-links">
+          <a href="manual.html" class="rules-link">Spelregler</a>
+          <span class="rules-link" style="cursor: default; margin: 0 8px;">•</span>
+          <a href="about.html" class="rules-link">Om projektet</a>
+        </div>
       </div>
     </div>
 
