@@ -407,6 +407,45 @@
       margin-top: 4px;
     }
     
+    .start-buttons {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .start-btn {
+      flex: 1;
+      padding: 16px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: var(--bg-dark);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    .start-btn:hover:not(:disabled) {
+      background: #d4a73e;
+      transform: translateY(-2px);
+    }
+    
+    .start-btn:disabled {
+      background: #555;
+      color: #888;
+      cursor: not-allowed;
+    }
+    
+    .start-btn span {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 400;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+    
     .difficulty-label {
       font-size: 0.9rem;
       color: var(--text-dim);
@@ -1138,19 +1177,16 @@
         <div class="waiting-text" id="waitingText">Minst 3 spelare krävs för att starta</div>
         
         <div id="hostControls" style="display: none;">
-          <div class="mode-selector">
-            <button class="mode-btn active" data-mode="quick" onclick="setMode('quick')">
-              Snabb
+          <div class="start-buttons">
+            <button class="start-btn" id="startQuickBtn" onclick="startGame('quick')" disabled>
+              Spela snabbspel
               <span>En runda</span>
             </button>
-            <button class="mode-btn" data-mode="standard" onclick="setMode('standard')">
-              Standard
+            <button class="start-btn" id="startStandardBtn" onclick="startGame('standard')" disabled>
+              Spela standardspel
               <span>Till 500 poäng</span>
             </button>
           </div>
-          <button class="btn btn-primary" id="startGameBtn" onclick="startGame()" disabled>
-            Starta spel
-          </button>
         </div>
         
         <button class="btn btn-secondary" onclick="leaveRoom()">Lämna rum</button>
@@ -1234,7 +1270,6 @@
     let socket = null;
     let gameState = null;
     let selectedCardIds = [];
-    let selectedMode = 'quick';
     
     // För reconnect
     let currentRoomCode = null;
@@ -1560,15 +1595,8 @@
       });
     }
 
-    function setMode(mode) {
-      selectedMode = mode;
-      document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mode === mode);
-      });
-    }
-
-    function startGame() {
-      socket.emit('startGame', selectedMode);
+    function startGame(mode) {
+      socket.emit('startGame', mode);
     }
 
     // ============================================
@@ -1762,7 +1790,8 @@
       const canAddBot = gameState.players.length < 7;
       
       document.getElementById('hostControls').style.display = isHost ? 'block' : 'none';
-      document.getElementById('startGameBtn').disabled = !canStart;
+      document.getElementById('startQuickBtn').disabled = !canStart;
+      document.getElementById('startStandardBtn').disabled = !canStart;
       
       // Uppdatera robot-knappen
       const botBtnContainer = document.getElementById('botButtonContainer');
