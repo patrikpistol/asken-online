@@ -970,12 +970,19 @@ io.on('connection', (socket) => {
     
     await saveRoom(room);
     
-    // Flytta alla spelare till rummet
+    // Flytta alla spelare till rummet och sätt deras currentRoom
     for (const player of playersToAdd) {
       const playerSocket = io.sockets.sockets.get(player.socketId);
       if (playerSocket) {
+        // Sätt currentRoom för varje spelare via en emit som triggar klientens state
         playerSocket.join(room.code);
-        playerSocket.emit('matchmakingGameStarted', { code: room.code });
+        playerSocket.emit('matchmakingGameStarted', { 
+          code: room.code,
+          playerName: player.name 
+        });
+        
+        // Uppdatera socket's data (detta är viktigt för disconnect-hantering)
+        // Vi gör detta genom att emulera att spelaren gick med i rummet
       }
       removeFromMatchmaking(player.socketId);
     }
@@ -984,6 +991,20 @@ io.on('connection', (socket) => {
     emitRoomState(room);
     
     console.log(`[Matchmaking] Spel startat med ${room.players.length} spelare i rum ${room.code}`);
+  });
+  
+  // Bekräfta att spelare gått med i matchmaking-rum (för att sätta currentRoom)
+  socket.on('confirmMatchmakingJoin', async (code) => {
+    const room = await getRoom(code);
+    if (room && room.players.some(p => p.id === socket.id)) {
+      currentRoom = code;
+      const player = room.players.find(p => p.id === socket.id);
+      if (player) {
+        playerName = player.name;
+      }
+      inMatchmaking = false;
+      console.log(`[Matchmaking] ${playerName} bekräftade join till rum ${code}`);
+    }
   });
   
   // ============================================
