@@ -1295,10 +1295,27 @@
     let gameState = null;
     let selectedCardIds = [];
     
-    // För reconnect
-    let currentRoomCode = null;
-    let currentPlayerName = null;
+    // För reconnect - använd sessionStorage för att överleva siduppdatering
+    let currentRoomCode = sessionStorage.getItem('asken_roomCode') || null;
+    let currentPlayerName = sessionStorage.getItem('asken_playerName') || null;
     let keepaliveInterval = null;
+    
+    // Hjälpfunktioner för att spara/rensa session
+    function saveSession(code, name) {
+      currentRoomCode = code;
+      currentPlayerName = name;
+      if (code && name) {
+        sessionStorage.setItem('asken_roomCode', code);
+        sessionStorage.setItem('asken_playerName', name);
+      }
+    }
+    
+    function clearSession() {
+      currentRoomCode = null;
+      currentPlayerName = null;
+      sessionStorage.removeItem('asken_roomCode');
+      sessionStorage.removeItem('asken_playerName');
+    }
 
     // ============================================
     // SOCKET ANSLUTNING
@@ -1307,14 +1324,17 @@
     function connectSocket() {
       socket = io({
         reconnection: true,
-        reconnectionAttempts: 10,
+        reconnectionAttempts: Infinity,  // Fortsätt försöka
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        timeout: 20000
+        timeout: 45000,
+        forceNew: false,
+        transports: ['websocket', 'polling']  // Prioritera websocket
       });
 
       socket.on('connect', () => {
-        console.log('Ansluten till server');
+        console.log('Ansluten till server, socket.id:', socket.id);
+        hideError(); // Ta bort eventuellt felmeddelande
         
         // Försök återansluta till rum om vi var i ett
         if (currentRoomCode && currentPlayerName) {
@@ -1325,46 +1345,43 @@
           });
         }
         
-        // Starta keepalive-ping var 30:e sekund
+        // Starta keepalive-ping var 20:e sekund
         if (keepaliveInterval) clearInterval(keepaliveInterval);
         keepaliveInterval = setInterval(() => {
-          if (socket && socket.connected) {
+          if (socket && socket.connected && currentRoomCode) {
             socket.emit('ping');
           }
-        }, 30000);
+        }, 20000);
       });
 
       socket.on('roomCreated', ({ code }) => {
-        currentRoomCode = code;
-        currentPlayerName = document.getElementById('playerName').value.trim();
+        saveSession(code, document.getElementById('playerName').value.trim());
         document.getElementById('displayRoomCode').textContent = code;
         showScreen('lobbyScreen');
       });
 
       socket.on('roomJoined', ({ code }) => {
-        currentRoomCode = code;
-        currentPlayerName = document.getElementById('playerName').value.trim();
+        saveSession(code, document.getElementById('playerName').value.trim());
         document.getElementById('displayRoomCode').textContent = code;
         showScreen('lobbyScreen');
       });
       
       socket.on('rejoinSuccess', ({ code }) => {
-        currentRoomCode = code;
+        saveSession(code, currentPlayerName);
         document.getElementById('displayRoomCode').textContent = code;
         console.log('Återansluten till rum:', code);
       });
       
       socket.on('rejoinFailed', ({ message }) => {
         console.log('Kunde inte återansluta:', message);
-        currentRoomCode = null;
-        currentPlayerName = null;
+        clearSession();
         showScreen('menuScreen');
         showError('Rummet finns inte längre. Skapa ett nytt.');
       });
 
       socket.on('gameState', (state) => {
         gameState = state;
-        currentRoomCode = state.code;
+        saveSession(state.code, currentPlayerName);
         selectedCardIds = [];
         render();
       });
@@ -1383,8 +1400,7 @@
         document.getElementById('modal').classList.remove('visible');
         gameState = null;
         selectedCardIds = [];
-        currentRoomCode = null;
-        currentPlayerName = null;
+        clearSession();
         showScreen('menuScreen');
         showError(`Spelet avslutades: ${playerName} har lämnat spelet`);
       });
@@ -1393,8 +1409,7 @@
         document.getElementById('modal').classList.remove('visible');
         gameState = null;
         selectedCardIds = [];
-        currentRoomCode = null;
-        currentPlayerName = null;
+        clearSession();
         showScreen('menuScreen');
         showError('Värden har avslutat spelet');
       });
@@ -1413,14 +1428,29 @@
           keepaliveInterval = null;
         }
         
-        // Om det inte var en manuell frånkoppling, visa meddelande
-        if (reason !== 'io client disconnect') {
+        // Visa meddelande baserat på orsak
+        if (reason === 'io server disconnect') {
+          // Servern stängde anslutningen
+          showError('Servern avslutade anslutningen - försöker återansluta...');
+        } else if (reason === 'transport close' || reason === 'ping timeout') {
           showError('Tappad anslutning - försöker återansluta...');
+        } else if (reason !== 'io client disconnect') {
+          showError('Anslutningen avbröts - försöker återansluta...');
         }
       });
       
       socket.on('reconnect', (attemptNumber) => {
         console.log('Återansluten efter', attemptNumber, 'försök');
+        hideError();
+        
+        // Socket.io har återanslutit, men vi behöver rejoin:a rummet
+        // Detta hanteras automatiskt i 'connect'-eventet
+      });
+      
+      socket.on('reconnect_attempt', (attemptNumber) => {
+        if (attemptNumber > 3) {
+          showError(`Återanslutningsförsök ${attemptNumber}...`);
+        }
       });
       
       socket.on('reconnect_error', (error) => {
@@ -1428,10 +1458,9 @@
       });
       
       socket.on('reconnect_failed', () => {
+        // Behåll session så användaren kan ladda om och försöka igen
         showScreen('menuScreen');
-        showError('Kunde inte återansluta. Försök igen.');
-        currentRoomCode = null;
-        currentPlayerName = null;
+        showError('Kunde inte återansluta till servern. Ladda om sidan och försök igen.');
       });
     }
 
@@ -1461,6 +1490,11 @@
       setTimeout(() => {
         errorEl.style.display = 'none';
       }, 6000);
+    }
+    
+    function hideError() {
+      document.getElementById('gameError').style.display = 'none';
+      document.getElementById('menuError').style.display = 'none';
     }
 
     // ============================================
@@ -1519,8 +1553,7 @@
       }
       gameState = null;
       selectedCardIds = [];
-      currentRoomCode = null;
-      currentPlayerName = null;
+      clearSession();
       showScreen('menuScreen');
     }
     
@@ -1531,8 +1564,7 @@
       document.getElementById('modal').classList.remove('visible');
       gameState = null;
       selectedCardIds = [];
-      currentRoomCode = null;
-      currentPlayerName = null;
+      clearSession();
       showScreen('menuScreen');
     }
     
