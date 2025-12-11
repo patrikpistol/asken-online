@@ -661,43 +661,61 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
-      padding: 12px;
+      gap: 4px;
+      padding: 12px 8px;
       background: rgba(0,0,0,0.2);
       border-radius: 12px;
       min-width: 75px;
       flex-shrink: 0;
+      overflow: visible;
     }
 
     .card-stack-upper {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      height: 90px;
+      min-height: 76px;
       justify-content: flex-end;
       flex-shrink: 0;
-      overflow: hidden;
+      overflow: visible;
+      padding: 15px 8px 4px 8px;
+    }
+    
+    .card-stack-upper .table-card {
+      margin-top: -56px;
+    }
+    
+    .card-stack-upper .table-card:first-child {
+      margin-top: 0;
     }
 
     .card-stack-seven {
       display: flex;
       flex-direction: column;
       align-items: center;
-      height: 76px;
+      height: 80px;
       flex-shrink: 0;
-      overflow: hidden;
+      overflow: visible;
+      padding: 4px 8px;
     }
 
     .card-stack-lower {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      height: 90px;
+      min-height: 76px;
       justify-content: flex-start;
       flex-shrink: 0;
-      overflow: hidden;
+      overflow: visible;
+      padding: 4px 8px 15px 8px;
+    }
+    
+    .card-stack-lower .table-card {
+      margin-top: -56px;
+    }
+    
+    .card-stack-lower .table-card:first-child {
+      margin-top: 0;
     }
 
     .table-card {
@@ -711,6 +729,8 @@
       justify-content: center;
       font-weight: 600;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      position: relative;
+      flex-shrink: 0;
     }
 
     .table-card.red { color: var(--red); }
@@ -734,27 +754,27 @@
     .table-card.completed.black { color: #606060; }
     
     .table-card.last-played {
+      position: relative;
       box-shadow: 
-        0 0 0 4px #ffd700,
-        0 0 15px 5px rgba(255, 215, 0, 0.6),
-        0 0 30px 10px rgba(255, 215, 0, 0.3);
-      transform: scale(1.1);
-      z-index: 10;
+        0 0 0 3px #ffd700,
+        0 0 12px 4px rgba(255, 215, 0, 0.7),
+        0 0 25px 8px rgba(255, 215, 0, 0.4);
+      z-index: 20;
       animation: lastPlayedPulse 1.5s ease-in-out infinite;
     }
     
     @keyframes lastPlayedPulse {
       0%, 100% {
         box-shadow: 
-          0 0 0 4px #ffd700,
-          0 0 15px 5px rgba(255, 215, 0, 0.6),
-          0 0 30px 10px rgba(255, 215, 0, 0.3);
+          0 0 0 3px #ffd700,
+          0 0 12px 4px rgba(255, 215, 0, 0.7),
+          0 0 25px 8px rgba(255, 215, 0, 0.4);
       }
       50% {
         box-shadow: 
           0 0 0 4px #ffd700,
-          0 0 20px 8px rgba(255, 215, 0, 0.8),
-          0 0 40px 15px rgba(255, 215, 0, 0.4);
+          0 0 18px 6px rgba(255, 215, 0, 0.9),
+          0 0 35px 12px rgba(255, 215, 0, 0.5);
       }
     }
 
@@ -2144,20 +2164,23 @@
         const column = document.createElement('div');
         column.className = 'suit-column';
 
-        // Övre delen
+        // Övre delen (kort 8-K, visas nerifrån och upp)
         const upperStack = document.createElement('div');
         upperStack.className = 'card-stack-upper';
 
         if (suitState && suitState.high > 7) {
-          const highCard = document.createElement('div');
-          const isKing = suitState.high === 13;
-          const isLastPlayed = lastPlayed.includes(`${suit}-${suitState.high}`);
-          highCard.className = `table-card ${colorClass}${isKing ? ' completed' : ''}${isLastPlayed ? ' last-played' : ''}`;
-          highCard.innerHTML = `
-            <span class="rank">${RANK_NAMES[suitState.high]}</span>
-            <span class="suit">${SUIT_SYMBOLS[suit]}</span>
-          `;
-          upperStack.appendChild(highCard);
+          // Visa alla kort från 8 upp till high (högst kort överst)
+          for (let rank = 8; rank <= suitState.high; rank++) {
+            const card = document.createElement('div');
+            const isKing = rank === 13;
+            const isLastPlayed = lastPlayed.includes(`${suit}-${rank}`);
+            card.className = `table-card ${colorClass}${isKing ? ' completed' : ''}${isLastPlayed ? ' last-played' : ''}`;
+            card.innerHTML = `
+              <span class="rank">${RANK_NAMES[rank]}</span>
+              <span class="suit">${SUIT_SYMBOLS[suit]}</span>
+            `;
+            upperStack.appendChild(card);
+          }
         } else {
           const placeholder = document.createElement('div');
           placeholder.className = 'card-placeholder';
@@ -2190,20 +2213,23 @@
 
         column.appendChild(sevenStack);
 
-        // Nedre delen
+        // Nedre delen (kort 6-A, visas uppifrån och ner)
         const lowerStack = document.createElement('div');
         lowerStack.className = 'card-stack-lower';
 
         if (suitState && suitState.low < 7) {
-          const lowCard = document.createElement('div');
-          const isAce = suitState.low === 1;
-          const isLastPlayed = lastPlayed.includes(`${suit}-${suitState.low}`);
-          lowCard.className = `table-card ${colorClass}${isAce ? ' completed' : ''}${isLastPlayed ? ' last-played' : ''}`;
-          lowCard.innerHTML = `
-            <span class="rank">${RANK_NAMES[suitState.low]}</span>
-            <span class="suit">${SUIT_SYMBOLS[suit]}</span>
-          `;
-          lowerStack.appendChild(lowCard);
+          // Visa alla kort från 6 ner till low (lägst kort nederst)
+          for (let rank = 6; rank >= suitState.low; rank--) {
+            const card = document.createElement('div');
+            const isAce = rank === 1;
+            const isLastPlayed = lastPlayed.includes(`${suit}-${rank}`);
+            card.className = `table-card ${colorClass}${isAce ? ' completed' : ''}${isLastPlayed ? ' last-played' : ''}`;
+            card.innerHTML = `
+              <span class="rank">${RANK_NAMES[rank]}</span>
+              <span class="suit">${SUIT_SYMBOLS[suit]}</span>
+            `;
+            lowerStack.appendChild(card);
+          }
         } else {
           const placeholder = document.createElement('div');
           placeholder.className = 'card-placeholder';
@@ -2233,7 +2259,10 @@
         section.className = `player-section ${player.isCurrent && !gameState.roundEnded ? 'current-player' : ''} ${player.isMe ? 'is-me' : ''} ${player.isWinner ? 'winner' : ''} ${player.isBot ? 'is-bot' : ''}`;
 
         const hasPlayable = gameState.playableCardIds?.length > 0;
+        // I hjälpläge: kan bara passa om inga spelbara kort
+        // I standardläge: kan alltid försöka passa (servern validerar)
         const canPass = player.isCurrent && player.isMe && !hasPlayable && !gameState.roundEnded;
+        const showPassEnabled = gameState.helpMode ? canPass : (player.isCurrent && player.isMe && !gameState.roundEnded);
 
         section.innerHTML = `
           <div class="player-header">
@@ -2257,7 +2286,7 @@
               <button class="action-btn play" onclick="playCards()" ${selectedCardIds.length === 0 || (gameState.helpMode && !validateSelectedCards()) ? 'disabled' : ''}>
                 Spela ${selectedCardIds.length > 0 ? '(' + selectedCardIds.length + ' kort)' : ''}
               </button>
-              <button class="action-btn pass" onclick="pass()" ${!canPass ? 'disabled' : ''}>
+              <button class="action-btn pass" onclick="pass()" ${!showPassEnabled ? 'disabled' : ''}>
                 Passa ${canPass ? '(ta asken)' : ''}
               </button>
             </div>
