@@ -335,6 +335,62 @@ function canBePartOfSequence(card, hand, tableau) {
   return false;
 }
 
+// Bygg ett detaljerat meddelande om varför draget är ogiltigt
+function buildInvalidMoveMessage(selectedCards, tableau) {
+  const SUIT_NAMES_SV = { 
+    spades: 'spader', 
+    hearts: 'hjärter', 
+    diamonds: 'ruter', 
+    clubs: 'klöver' 
+  };
+  const RANK_NAMES_SV = { 
+    1: 'ess', 2: 'tvåa', 3: 'trea', 4: 'fyra', 5: 'femma', 
+    6: 'sexa', 7: 'sjua', 8: 'åtta', 9: 'nia', 10: 'tia', 
+    11: 'knekt', 12: 'dam', 13: 'kung' 
+  };
+  
+  if (selectedCards.length === 0) {
+    return 'Inga kort valda.';
+  }
+  
+  const reasons = [];
+  
+  for (const card of selectedCards) {
+    const suitName = SUIT_NAMES_SV[card.suit];
+    const rankName = RANK_NAMES_SV[card.rank];
+    const suitState = tableau[card.suit];
+    
+    if (!suitState) {
+      // Färgen är inte startad
+      if (card.rank !== 7) {
+        reasons.push(`<strong>${rankName} ${suitName}</strong> kan inte spelas - ${suitName} måste startas med en sjua.`);
+      }
+    } else {
+      // Färgen är startad - kolla om kortet passar
+      const canPlayLow = card.rank === suitState.low - 1;
+      const canPlayHigh = card.rank === suitState.high + 1;
+      
+      if (!canPlayLow && !canPlayHigh) {
+        if (card.rank < suitState.low) {
+          const needed = suitState.low - 1;
+          reasons.push(`<strong>${rankName} ${suitName}</strong> kan inte spelas - du måste först lägga ${RANK_NAMES_SV[needed]} ${suitName}.`);
+        } else if (card.rank > suitState.high) {
+          const needed = suitState.high + 1;
+          reasons.push(`<strong>${rankName} ${suitName}</strong> kan inte spelas - du måste först lägga ${RANK_NAMES_SV[needed]} ${suitName}.`);
+        } else {
+          reasons.push(`<strong>${rankName} ${suitName}</strong> ligger redan på bordet.`);
+        }
+      }
+    }
+  }
+  
+  if (reasons.length === 0) {
+    return 'Korten kan inte spelas tillsammans i denna ordning.';
+  }
+  
+  return reasons.join('<br><br>');
+}
+
 function getPlayableOrder(selectedCards, tableau) {
   if (selectedCards.length === 0) return null;
   
@@ -668,6 +724,7 @@ function emitRoomStateToAll(room) {
       roundScores: room.roundScores || null,
       lastPlayedCards: room.lastPlayedCards || [],
       botDifficulty: room.botDifficulty || 'dumb',
+      helpMode: room.helpMode || false,
       hasBots,
       isGameOver,
       myId: player.id,
@@ -689,10 +746,17 @@ function emitRoomStateToAll(room) {
       }))
     };
     
+    // Om det är spelarens tur
     if (player.id === room.players[room.currentPlayerIndex]?.id && room.state === 'playing' && !room.roundEnded) {
-      state.playableCardIds = player.hand
-        .filter(c => canBePartOfSequence(c, player.hand, room.tableau))
-        .map(c => c.id);
+      if (room.helpMode) {
+        // Hjälpläge på: visa bara spelbara kort
+        state.playableCardIds = player.hand
+          .filter(c => canBePartOfSequence(c, player.hand, room.tableau))
+          .map(c => c.id);
+      } else {
+        // Hjälpläge av: alla kort är "valbara" (men inte nödvändigtvis spelbara)
+        state.playableCardIds = player.hand.map(c => c.id);
+      }
     }
     
     playerSocket.emit('gameState', state);
@@ -997,6 +1061,24 @@ io.on('connection', (socket) => {
     console.log(`Robotsvårighetsgrad satt till ${difficulty} i rum ${room.code}`);
   });
   
+  // Sätt hjälpläge
+  socket.on('setHelpMode', async (helpMode) => {
+    const room = await getRoom(currentRoom);
+    if (!room || room.hostId !== socket.id) return;
+    
+    if (room.state !== 'lobby') {
+      socket.emit('error', { message: 'Kan bara ändra hjälpläge i lobbyn' });
+      return;
+    }
+    
+    room.helpMode = helpMode === true;
+    room.lastActivity = Date.now();
+    await saveRoom(room);
+    
+    emitRoomState(room);
+    console.log(`Hjälpläge satt till ${room.helpMode ? 'på' : 'av'} i rum ${room.code}`);
+  });
+  
   // Starta spel
   socket.on('startGame', async (mode) => {
     const room = await getRoom(currentRoom);
@@ -1080,7 +1162,14 @@ io.on('connection', (socket) => {
     const orderedCards = getPlayableOrder(selectedCards, room.tableau);
     if (!orderedCards) {
       console.log('getPlayableOrder returnerade null');
-      socket.emit('error', { message: 'Korten kan inte spelas i denna ordning' });
+      
+      // Om hjälpläge är av, skicka detaljerat invalidMove
+      if (!room.helpMode) {
+        const invalidMessage = buildInvalidMoveMessage(selectedCards, room.tableau);
+        socket.emit('invalidMove', { message: invalidMessage });
+      } else {
+        socket.emit('error', { message: 'Korten kan inte spelas i denna ordning' });
+      }
       return;
     }
     
@@ -1402,6 +1491,7 @@ io.on('connection', (socket) => {
         roundScores: room.roundScores || null,
         lastPlayedCards: room.lastPlayedCards || [],
         botDifficulty: room.botDifficulty || 'dumb',
+        helpMode: room.helpMode || false,
         hasBots,
         isGameOver,
         myId: player.id,
@@ -1423,10 +1513,17 @@ io.on('connection', (socket) => {
         }))
       };
       
+      // Om det är spelarens tur
       if (player.id === room.players[room.currentPlayerIndex]?.id && room.state === 'playing' && !room.roundEnded) {
-        state.playableCardIds = player.hand
-          .filter(c => canBePartOfSequence(c, player.hand, room.tableau))
-          .map(c => c.id);
+        if (room.helpMode) {
+          // Hjälpläge på: visa bara spelbara kort
+          state.playableCardIds = player.hand
+            .filter(c => canBePartOfSequence(c, player.hand, room.tableau))
+            .map(c => c.id);
+        } else {
+          // Hjälpläge av: alla kort är "valbara"
+          state.playableCardIds = player.hand.map(c => c.id);
+        }
       }
       
       playerSocket.emit('gameState', state);
