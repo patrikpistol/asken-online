@@ -253,6 +253,64 @@
       text-align: center;
       margin-top: 16px;
     }
+    
+    /* Dela spelet */
+    .share-section {
+      margin-top: 24px;
+      text-align: center;
+    }
+    
+    .share-title {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .share-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+    
+    .share-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      transition: all 0.2s;
+      opacity: 0.8;
+    }
+    
+    .share-btn:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    
+    .share-btn svg {
+      width: 32px;
+      height: 32px;
+      display: block;
+    }
+    
+    .credit-link {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    .credit-link a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.8rem;
+      transition: color 0.2s;
+    }
+    
+    .credit-link a:hover {
+      color: var(--accent);
+    }
 
     .divider {
       text-align: center;
@@ -1384,6 +1442,72 @@
           <a href="manual.html" class="rules-link">Spelregler</a>
           <span class="rules-link" style="cursor: default; margin: 0 8px;">•</span>
           <a href="about.html" class="rules-link">Om projektet</a>
+        </div>
+        
+        <!-- Dela spelet -->
+        <div class="share-section">
+          <div class="share-title">Dela spelet</div>
+          <div class="share-buttons">
+            <button onclick="shareToFacebook()" title="Dela på Facebook" class="share-btn">
+              <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="fbGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#0062E0"/>
+                    <stop offset="100%" style="stop-color:#19AFFF"/>
+                  </linearGradient>
+                </defs>
+                <path fill="url(#fbGradient)" d="M16.7,39.8C7.2,38.1,0,29.9,0,20C0,9,9,0,20,0s20,9,20,20c0,9.9-7.2,18.1-16.7,19.8H16.7z"/>
+                <path fill="#FFFFFF" d="M27.8,25.6l0.9-5.6h-5.3v-3.9c0-1.6,0.6-2.8,3-2.8H29V8.2c-1.4-0.2-3-0.4-4.4-0.4c-4.6,0-7.8,2.8-7.8,7.8V20h-5v5.6h5v14.1c1.1,0.2,2.2,0.3,3.3,0.3c1.1,0,2.2-0.1,3.3-0.3V25.6H27.8z"/>
+              </svg>
+            </button>
+            <button onclick="shareToTwitter()" title="Dela på X" class="share-btn">
+              <svg viewBox="0 0 300 271" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#ffffff" d="m236 0h46l-101 115 118 156h-92.6l-72.5-94.8-83 94.8h-46l107-123-113-148h94.9l65.5 86.6zm-16.1 244h25.5l-165-218h-27.4z"/>
+              </svg>
+            </button>
+            <button onclick="shareToLinkedIn()" title="Dela på LinkedIn" class="share-btn">
+              <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#007EBB" d="M8,72 L64,72 C68.418278,72 72,68.418278 72,64 L72,8 C72,3.581722 68.418278,-8.11624501e-16 64,0 L8,0 C3.581722,8.11624501e-16 -5.41083001e-16,3.581722 0,8 L0,64 C5.41083001e-16,68.418278 3.581722,72 8,72 Z"/>
+                <path fill="#FFF" d="M62,62 L51.315625,62 L51.315625,43.8021149 C51.315625,38.8127542 49.4197917,36.0245323 45.4707031,36.0245323 C41.1746094,36.0245323 38.9300781,38.9261103 38.9300781,43.8021149 L38.9300781,62 L28.6333333,62 L28.6333333,27.3333333 L38.9300781,27.3333333 L38.9300781,32.0029283 C38.9300781,32.0029283 42.0260417,26.2742151 49.3825521,26.2742151 C56.7356771,26.2742151 62,30.7644705 62,40.051212 L62,62 Z M16.349349,22.7940133 C12.8420573,22.7940133 10,19.9296567 10,16.3970067 C10,12.8643566 12.8420573,10 16.349349,10 C19.8566406,10 22.6970052,12.8643566 22.6970052,16.3970067 C22.6970052,19.9296567 19.8566406,22.7940133 16.349349,22.7940133 Z M11.0325521,62 L21.769401,62 L21.769401,27.3333333 L11.0325521,27.3333333 L11.0325521,62 Z"/>
+              </svg>
+            </button>
+            <button onclick="shareToReddit()" title="Dela på Reddit" class="share-btn">
+              <svg viewBox="0 0 824.9 810" xmlns="http://www.w3.org/2000/svg">
+                <circle fill="#FF4500" cx="406.6" cy="405.6" r="402.3"/>
+                <path fill="#FFFFFF" d="M674.9,405.6c-1.2-32.4-28.4-57.7-60.9-56.6c-14.4,0.5-28.1,6.4-38.5,16.3c-45.8-31.2-99.6-48.3-154.9-49.5l26.1-125.5l86.1,18.1c2.4,22.1,22.2,38.1,44.3,35.7c22.1-2.4,38.1-22.2,35.7-44.3s-22.2-38.1-44.3-35.7c-12.7,1.3-24.1,8.7-30.4,19.7l-98.6-19.7c-6.7-1.5-13.4,2.7-14.9,9.5c0,0.1,0,0.1,0,0.2l-29.7,139.6c-56,0.9-110.5,18.1-156.9,49.5c-23.6-22.2-60.8-21.1-83,2.6c-22.2,23.6-21.1,60.8,2.6,83c4.6,4.3,9.9,8,15.8,10.6c-0.4,5.9-0.4,11.8,0,17.7c0,90.1,105,163.4,234.5,163.4S642.4,567,642.4,476.8c0.4-5.9,0.4-11.8,0-17.7C662.6,449,675.3,428.2,674.9,405.6z M272.6,445.9c0-22.2,18.1-40.3,40.3-40.3s40.3,18.1,40.3,40.3c0,22.2-18.1,40.3-40.3,40.3C290.6,486,272.6,468.1,272.6,445.9z M506.3,556.5c-28.6,21.5-63.6,32.5-99.4,31c-35.8,1.5-70.8-9.5-99.4-31c-3.8-4.6-3.1-11.5,1.5-15.3c4-3.3,9.7-3.3,13.8,0c24.2,17.7,53.7,26.7,83.7,25.3c30,1.6,59.6-7,84.1-24.5c4.4-4.3,11.6-4.2,15.9,0.2s4.2,11.6-0.2,15.9l0,0V556.5L506.3,556.5z M499.1,487.6c-22.2,0-40.3-18.1-40.3-40.3c0-22.2,18.1-40.3,40.3-40.3s40.3,18.1,40.3,40.3c0.9,22.2-16.4,40.9-38.6,41.8c-0.7,0-1.3,0-2,0L499.1,487.6z"/>
+              </svg>
+            </button>
+            <button onclick="shareToWhatsApp()" title="Dela på WhatsApp" class="share-btn">
+              <svg viewBox="0 0 175.216 175.552" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="whatsappGradient" x1="85.915" x2="86.535" y1="32.567" y2="137.092" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#57d163"/>
+                    <stop offset="1" stop-color="#23b33a"/>
+                  </linearGradient>
+                </defs>
+                <path fill="#fff" d="m12.966 161.238 10.439-38.114a73.42 73.42 0 0 1-9.821-36.772c.017-40.556 33.021-73.55 73.578-73.55 19.681.01 38.154 7.669 52.047 21.572s21.537 32.383 21.53 52.037c-.018 40.553-33.027 73.553-73.578 73.553h-.032c-12.313-.005-24.412-3.094-35.159-8.954z"/>
+                <path fill="url(#whatsappGradient)" d="M87.184 25.227c-33.733 0-61.166 27.423-61.178 61.13a60.98 60.98 0 0 0 9.349 32.535l1.455 2.313-6.179 22.558 23.146-6.069 2.235 1.324c9.387 5.571 20.15 8.517 31.126 8.523h.023c33.707 0 61.14-27.426 61.153-61.135a60.75 60.75 0 0 0-17.895-43.251 60.75 60.75 0 0 0-43.235-17.928z"/>
+                <path fill="#fff" fill-rule="evenodd" d="M68.772 55.603c-1.378-3.061-2.828-3.123-4.137-3.176l-3.524-.043c-1.226 0-3.218.46-4.902 2.3s-6.435 6.287-6.435 15.332 6.588 17.785 7.506 19.013 12.718 20.381 31.405 27.75c15.529 6.124 18.689 4.906 22.061 4.6s10.877-4.447 12.408-8.74 1.532-7.971 1.073-8.74-1.685-1.226-3.525-2.146-10.877-5.367-12.562-5.981-2.91-.919-4.137.921-4.746 5.979-5.819 7.206-2.144 1.381-3.984.462-7.76-2.861-14.784-9.124c-5.465-4.873-9.154-10.891-10.228-12.73s-.114-2.835.808-3.751c.825-.824 1.838-2.147 2.759-3.22s1.224-1.84 1.836-3.065.307-2.301-.153-3.22-4.032-10.011-5.666-13.647"/>
+              </svg>
+            </button>
+            <button onclick="shareViaEmail()" title="Dela via e-post" class="share-btn">
+              <svg viewBox="0 0 975.9 800" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#ffffff" d="M104.3,627.5c-9.2,0-17.8-2.4-25.2-6.7l217.3-189.3l20.3,17.6c17,14.8,38.2,22.2,59.3,22.2c21.1,0,42.4-7.5,59.4-22.2l20.3-17.6l73.6,64.1c8.3-14,18.7-26.6,30.6-37.6l-67.3-58.7l206-179.7v198.6c19.2,3.5,37.1,10.3,53.3,19.9v-243c0-6.9-0.7-13.7-1.9-20.3c-3.4-17.1-11-32.7-21.5-45.6c-2.2-2.8-4.6-5.3-7.1-7.8c-18.7-18.8-45-30.6-73.7-30.6H104.3c-28.7,0-54.9,11.7-73.7,30.6c-2.5,2.5-4.8,5-7.1,7.8C12.9,142.1,5.3,157.7,2,174.8c-1.4,6.6-2,13.4-2,20.3v381.5c0,14.6,3.1,28.7,8.6,41.4c5.1,12.1,12.7,23.1,21.9,32.3c2.3,2.3,4.7,4.5,7.2,6.6c18,14.9,41.3,24,66.5,24h438.3c-12.7-15.7-22.6-33.7-28.8-53.4L104.3,627.5L104.3,627.5z M68.3,159.1c9.3-9.3,21.8-14.9,36-14.9h543.2c14.2,0,26.8,5.6,36,14.9c1.6,1.7,3.2,3.5,4.6,5.3L403.3,412.5c-7.9,6.9-17.6,10.3-27.5,10.3c-9.8,0-19.5-3.4-27.5-10.3L63.8,164.3C65.1,162.5,66.6,160.7,68.3,159.1z M53.3,576.6V219.5l206,179.7L53.4,578.8C53.3,578.1,53.3,577.3,53.3,576.6z"/>
+                <path fill="#ffffff" d="M764.6,593.3c-4.6,4.6-63.3,63.3-63.3,63.3c-4.9,4.9-11.4,7.4-17.9,7.4c-6.5,0-13-2.5-17.9-7.4c-9.9-9.9-9.9-25.9,0-35.8l20.1-20.1H569.5c-14,0-25.3-11.3-25.3-25.3s11.3-25.3,25.3-25.3h116.1l-20.1-20.1c-9.9-9.9-9.9-25.9,0-35.8c9.9-9.9,25.9-9.9,35.8,0c0,0,58.1,58.1,63.3,63.3s0,0,0.1,0.1c0,0,0.1,0.1,0.1,0.1c0.4,0.3,0.7,0.7,1.1,1c0,0,0,0,0,0.1c0.2,0.2,0.5,0.5,0.7,0.7C433.9,505.4,433.1,445,395.6,407.4z"/>
+              </svg>
+            </button>
+            <button onclick="copyGameLink()" title="Kopiera länk" class="share-btn">
+              <svg viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#ffffff" d="M683.3,33.3H250c-46,0-83.3,37.4-83.3,83.3v16.7h-50c-45.9,0-83.3,37.4-83.3,83.3v466.7c0,46,37.4,83.3,83.3,83.3h466.7c46,0,83.3-37.4,83.3-83.3v-50h16.7c46,0,83.3-37.4,83.3-83.3V116.7C766.7,70.7,729.3,33.3,683.3,33.3z M600,683.3c0,9.2-7.5,16.7-16.7,16.7H116.7c-9.2,0-16.7-7.5-16.7-16.7V216.7c0-9.2,7.5-16.7,16.7-16.7h466.7c9.2,0,16.7,7.5,16.7,16.7V683.3z M700,550c0,9.2-7.5,16.7-16.7,16.7h-16.7v-350c0-45.9-37.4-83.3-83.3-83.3h-350v-16.7c0-9.2,7.5-16.7,16.7-16.7h433.3c9.2,0,16.7,7.5,16.7,16.7V550z"/>
+                <path fill="#ffffff" d="M507.9,271c-18.2-18.2-42.3-28.4-67.8-28.7c-25.8-0.3-50.1,9.4-68.2,27.6c-0.2,0.2-0.3,0.3-0.5,0.5l-88.2,91.8c-2.1,2.2-3.8,4.5-5.2,7c-13.8,18.1-20.7,40.8-19.2,64c1.6,23.5,11.7,45.7,28.5,62.5c6.5,6.5,15,9.8,23.6,9.8s17.1-3.3,23.6-9.8c13-13,13-34.1,0-47.1c-5.4-5.4-8.7-12.5-9.2-19.9c-0.6-8.3,2.3-16.1,8-21.8c1.6-1.6,3.1-3.4,4.3-5.3l81.6-84.9c5.3-5.2,12.4-8,19.9-7.8c8,0.1,15.7,3.4,21.5,9.2c11.8,11.8,12.3,30.5,1.2,41.7c-0.2,0.2-0.4,0.5-0.7,0.7l-31.8,33.7c-12.6,13.4-12,34.5,1.3,47.1c6.4,6.1,14.7,9.1,22.9,9.1c8.9,0,17.7-3.5,24.2-10.4l31.5-33.4C546.2,369.3,545.6,308.6,507.9,271z"/>
+                <path fill="#ffffff" d="M395.6,407.4c-13-13-34.1-13-47.1,0c-13,13-13,34.1,0,47.1c11.7,11.7,12.3,30.1,1.6,41.3l-85.3,77.4c-0.4,0.4-0.8,0.7-1.2,1.1c-11.2,11.2-29.8,10.6-41.7-1.2c-11.5-11.5-11.6-33.2-0.2-44.9c2.3-2.2,18.1-17.5,26.3-25.7c13-13,13-34.1,0-47.1c-13-13-34.1-13-47.1,0c-8.2,8.2-25.5,24.9-25.7,25.1c-0.1,0.1-0.3,0.3-0.4,0.4c-17.8,17.8-28,43-28.2,69.2c-0.1,26.5,10.1,52,28.2,70.1c19.1,19.1,44.2,28.7,69.1,28.7c24,0,48-8.9,66.2-26.9l85.4-77.5c0,0,0.1-0.1,0.1-0.1l0,0c0,0,0.1-0.1,0.1-0.1c0.4-0.3,0.7-0.7,1.1-1c0,0,0,0,0-0.1c0.2-0.2,0.5-0.5,0.7-0.7C433.9,505.4,433.1,445,395.6,407.4z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div class="credit-link">
+          <a href="https://pistol.se" target="_blank">Skapad av Pistol Reklambyrå</a>
         </div>
       </div>
     </div>
@@ -2574,6 +2698,61 @@
         if (e.key === 'Enter') mainAction();
       });
     });
+    
+    // ============================================
+    // DELNINGSFUNKTIONER
+    // ============================================
+    
+    const SHARE_URL = 'https://asken.pistol.se';
+    const SHARE_TITLE = 'Asken Online – Spela klassiska kortspelet gratis';
+    const SHARE_TEXT = 'Spela Asken online gratis med vänner! Det klassiska svenska kortspelet där du tävlar om att bli av med alla kort först.';
+    
+    function shareToFacebook() {
+      const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}`;
+      window.open(url, '_blank', 'width=600,height=400');
+    }
+    
+    function shareToTwitter() {
+      const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent(SHARE_TEXT)}`;
+      window.open(url, '_blank', 'width=600,height=400');
+    }
+    
+    function shareToLinkedIn() {
+      const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SHARE_URL)}`;
+      window.open(url, '_blank', 'width=600,height=400');
+    }
+    
+    function shareToReddit() {
+      const url = `https://www.reddit.com/submit?url=${encodeURIComponent(SHARE_URL)}&title=${encodeURIComponent(SHARE_TITLE)}`;
+      window.open(url, '_blank', 'width=600,height=600');
+    }
+    
+    function shareToWhatsApp() {
+      const url = `https://wa.me/?text=${encodeURIComponent(SHARE_TEXT + ' ' + SHARE_URL)}`;
+      window.open(url, '_blank');
+    }
+    
+    function shareViaEmail() {
+      const subject = encodeURIComponent(SHARE_TITLE);
+      const body = encodeURIComponent(`${SHARE_TEXT}\n\nSpela här: ${SHARE_URL}`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    }
+    
+    function copyGameLink() {
+      navigator.clipboard.writeText(SHARE_URL).then(() => {
+        // Visa bekräftelse
+        const btn = event.currentTarget;
+        const originalTitle = btn.title;
+        btn.title = 'Kopierad!';
+        btn.style.opacity = '1';
+        setTimeout(() => {
+          btn.title = originalTitle;
+          btn.style.opacity = '';
+        }, 2000);
+      }).catch(err => {
+        console.error('Kunde inte kopiera:', err);
+      });
+    }
   </script>
 </body>
 </html>
