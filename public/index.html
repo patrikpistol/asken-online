@@ -734,9 +734,28 @@
     .table-card.completed.black { color: #606060; }
     
     .table-card.last-played {
-      box-shadow: 0 0 0 3px var(--gold), 0 4px 12px rgba(198, 158, 96, 0.4);
-      transform: scale(1.05);
+      box-shadow: 
+        0 0 0 4px #ffd700,
+        0 0 15px 5px rgba(255, 215, 0, 0.6),
+        0 0 30px 10px rgba(255, 215, 0, 0.3);
+      transform: scale(1.1);
       z-index: 10;
+      animation: lastPlayedPulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes lastPlayedPulse {
+      0%, 100% {
+        box-shadow: 
+          0 0 0 4px #ffd700,
+          0 0 15px 5px rgba(255, 215, 0, 0.6),
+          0 0 30px 10px rgba(255, 215, 0, 0.3);
+      }
+      50% {
+        box-shadow: 
+          0 0 0 4px #ffd700,
+          0 0 20px 8px rgba(255, 215, 0, 0.8),
+          0 0 40px 15px rgba(255, 215, 0, 0.4);
+      }
     }
 
     .card-placeholder {
