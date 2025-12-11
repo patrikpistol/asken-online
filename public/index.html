@@ -1814,9 +1814,14 @@
         renderMatchmakingState(state);
       });
       
-      socket.on('matchmakingGameStarted', ({ code }) => {
-        saveSession(code, document.getElementById('playerName').value.trim());
+      socket.on('matchmakingGameStarted', ({ code, playerName }) => {
+        const name = playerName || document.getElementById('playerName').value.trim();
+        saveSession(code, name);
         document.getElementById('displayRoomCode').textContent = code;
+        
+        // Bekräfta till servern att vi gått med i rummet
+        socket.emit('confirmMatchmakingJoin', code);
+        
         showScreen('lobbyScreen');
       });
       
