@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+<!--
+  Asken Online - Det klassiska svenska kortspelet
+  
+  Skapat av Patrik Pistol för Pistol Reklambyrå AB
+  https://pistol.se | https://patrikpistol.com
+  
+  © 2024 Pistol Reklambyrå AB
+-->
 <html lang="sv">
 <head>
   <meta charset="UTF-8">
@@ -8,7 +16,7 @@
   <title>Asken Online – Spela klassiska kortspelet gratis</title>
   <meta name="description" content="Spela Asken online gratis med vänner! Det klassiska svenska kortspelet där du tävlar om att bli av med alla kort först. Skapa rum, bjud in vänner och spela direkt i webbläsaren.">
   <meta name="keywords" content="Asken, kortspel, svenska kortspel, spela online, multiplayer, gratis, vänner, spelkväll, sjuor, kortlek">
-  <meta name="author" content="Pistol Reklambyrå">
+  <meta name="author" content="Patrik Pistol, Pistol Reklambyrå AB">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://asken.pistol.se/">
   
@@ -58,9 +66,19 @@
       "price": "0",
       "priceCurrency": "SEK"
     },
+    "creator": {
+      "@type": "Person",
+      "name": "Patrik Pistol",
+      "url": "https://patrikpistol.com"
+    },
     "author": {
+      "@type": "Person",
+      "name": "Patrik Pistol",
+      "url": "https://patrikpistol.com"
+    },
+    "publisher": {
       "@type": "Organization",
-      "name": "Pistol Reklambyrå",
+      "name": "Pistol Reklambyrå AB",
       "url": "https://pistol.se"
     },
     "inLanguage": "sv",
@@ -310,6 +328,50 @@
     
     .credit-link a:hover {
       color: var(--accent);
+    }
+    
+    /* Matchmaking */
+    .matchmaking-info {
+      text-align: center;
+      padding: 20px 0;
+    }
+    
+    .matchmaking-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(198, 158, 96, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .matchmaking-queue,
+    .matchmaking-position {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      margin: 8px 0;
+    }
+    
+    .matchmaking-queue span,
+    .matchmaking-position span {
+      color: var(--accent);
+      font-weight: bold;
+    }
+    
+    .host-notice {
+      color: var(--green);
+      font-weight: 600;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    
+    #matchmakingControls {
+      margin: 20px 0;
     }
 
     .divider {
@@ -1438,6 +1500,7 @@
           </div>
         </div>
         <button class="btn btn-primary" id="mainActionBtn" onclick="mainAction()">Skapa nytt rum</button>
+        <button class="btn btn-secondary" id="findPlayersBtn" onclick="findPlayers()">🔍 Hitta andra spelare</button>
         <div class="footer-links">
           <a href="manual.html" class="rules-link">Spelregler</a>
           <span class="rules-link" style="cursor: default; margin: 0 8px;">•</span>
@@ -1507,8 +1570,27 @@
         </div>
         
         <div class="credit-link">
-          <a href="https://pistol.se" target="_blank">Skapad av Pistol Reklambyrå</a>
+          <a href="https://patrikpistol.com" target="_blank">Skapat av Patrik Pistol</a> för <a href="https://pistol.se" target="_blank">Pistol Reklambyrå AB</a>
         </div>
+      </div>
+    </div>
+
+    <!-- Matchmaking-skärm -->
+    <div class="screen" id="matchmakingScreen">
+      <div class="lobby-card">
+        <h2>🔍 Söker spelare...</h2>
+        <div class="matchmaking-info">
+          <div class="matchmaking-spinner"></div>
+          <p id="matchmakingStatus">Letar efter andra spelare som vill spela</p>
+          <p class="matchmaking-queue">Spelare i kö: <span id="queueCount">1</span></p>
+          <p class="matchmaking-position">Din plats i kön: <span id="queuePosition">1</span></p>
+        </div>
+        <div class="player-list" id="matchmakingPlayerList"></div>
+        <div id="matchmakingControls" style="display: none;">
+          <p class="host-notice">Du är värd! Starta när ni är redo.</p>
+          <button class="btn btn-primary" onclick="startMatchmakingGame()">Starta spel</button>
+        </div>
+        <button class="btn btn-secondary" onclick="leaveMatchmaking()">Avbryt sökning</button>
       </div>
     </div>
 
@@ -1727,6 +1809,17 @@
         showScreen('lobbyScreen');
       });
       
+      // Matchmaking events
+      socket.on('matchmakingUpdate', (state) => {
+        renderMatchmakingState(state);
+      });
+      
+      socket.on('matchmakingGameStarted', ({ code }) => {
+        saveSession(code, document.getElementById('playerName').value.trim());
+        document.getElementById('displayRoomCode').textContent = code;
+        showScreen('lobbyScreen');
+      });
+      
       socket.on('rejoinSuccess', ({ code }) => {
         saveSession(code, currentPlayerName);
         document.getElementById('displayRoomCode').textContent = code;
@@ -1884,6 +1977,68 @@
       } else {
         createRoom();
       }
+    }
+    
+    // ============================================
+    // MATCHMAKING
+    // ============================================
+    
+    function findPlayers() {
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) {
+        showError('Ange ditt namn');
+        return;
+      }
+      
+      if (!socket) connectSocket();
+      socket.emit('joinMatchmaking', name);
+      showScreen('matchmakingScreen');
+    }
+    
+    function leaveMatchmaking() {
+      if (socket) {
+        socket.emit('leaveMatchmaking');
+      }
+      showScreen('menuScreen');
+    }
+    
+    function startMatchmakingGame() {
+      if (socket) {
+        socket.emit('startMatchmakingGame');
+      }
+    }
+    
+    function renderMatchmakingState(state) {
+      // Uppdatera köinfo
+      document.getElementById('queueCount').textContent = state.queueCount;
+      document.getElementById('queuePosition').textContent = state.position;
+      
+      // Visa/dölj värdkontroller
+      const controls = document.getElementById('matchmakingControls');
+      if (state.isHost && state.queueCount >= 2) {
+        controls.style.display = 'block';
+      } else {
+        controls.style.display = 'none';
+      }
+      
+      // Uppdatera statusmeddelande
+      const status = document.getElementById('matchmakingStatus');
+      if (state.queueCount === 1) {
+        status.textContent = 'Väntar på fler spelare...';
+      } else if (state.isHost) {
+        status.textContent = `${state.queueCount} spelare redo! Du är värd.`;
+      } else {
+        status.textContent = `${state.queueCount} spelare i kön. Väntar på värden...`;
+      }
+      
+      // Rendera spelarlista
+      const list = document.getElementById('matchmakingPlayerList');
+      list.innerHTML = state.players.map(p => `
+        <div class="player-item${p.isHost ? ' host' : ''}">
+          <span class="player-name">${p.name}${p.isHost ? ' 👑' : ''}</span>
+          <span class="player-status">Plats ${p.position}</span>
+        </div>
+      `).join('');
     }
 
     function createRoom() {
