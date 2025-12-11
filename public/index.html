@@ -373,6 +373,208 @@
     #matchmakingControls {
       margin: 20px 0;
     }
+    
+    /* ============================================
+       CHAT
+       ============================================ */
+    
+    .chat-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 48px;
+      height: 48px;
+      background: var(--bg-card);
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .chat-toggle:hover {
+      transform: scale(1.1);
+      background: var(--accent);
+    }
+    
+    .chat-toggle:hover svg {
+      fill: var(--bg-dark);
+    }
+    
+    .chat-toggle svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--accent);
+      transition: fill 0.2s;
+    }
+    
+    .chat-toggle .chat-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--red);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+    
+    .chat-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+    }
+    
+    .chat-modal.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .chat-container {
+      background: var(--bg-card);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    
+    .chat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .chat-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+    
+    .chat-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      transition: color 0.2s;
+    }
+    
+    .chat-close:hover {
+      color: var(--red);
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      min-height: 200px;
+      max-height: 400px;
+    }
+    
+    .chat-message {
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+    }
+    
+    .chat-message.system {
+      background: rgba(198, 158, 96, 0.15);
+      color: var(--accent);
+      font-style: italic;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+    
+    .chat-message .chat-sender {
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+    
+    .chat-message .chat-text {
+      color: var(--text);
+      word-wrap: break-word;
+    }
+    
+    .chat-message .chat-time {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+    
+    .chat-input-area {
+      display: flex;
+      gap: 8px;
+      padding: 16px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .chat-input-area input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #404040;
+      border-radius: 8px;
+      background: var(--bg-dark);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+    
+    .chat-input-area input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    
+    .chat-send-btn {
+      padding: 12px 20px;
+      background: var(--accent);
+      color: var(--bg-dark);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .chat-send-btn:hover {
+      background: var(--accent-hover);
+    }
+    
+    .chat-empty {
+      color: var(--text-dim);
+      text-align: center;
+      font-style: italic;
+      padding: 40px 20px;
+    }
 
     .divider {
       text-align: center;
@@ -1570,7 +1772,7 @@
         </div>
         
         <div class="credit-link">
-          <a href="https://patrikpistol.com" target="_blank">Skapat av Patrik Pistol</a> för <a href="https://pistol.se" target="_blank">Pistol Reklambyrå AB</a>
+          Skapat av <a href="https://patrikpistol.com" target="_blank">Patrik Pistol</a> för <a href="https://pistol.se" target="_blank">Pistol Reklambyrå AB</a>
         </div>
       </div>
     </div>
@@ -1654,6 +1856,16 @@
     <!-- Spel-skärm -->
     <div class="screen" id="gameScreen">
       <div id="gameError" class="error-msg game-error" style="display: none;"></div>
+      
+      <!-- Chat-knapp -->
+      <button class="chat-toggle" id="chatToggle" onclick="openChat()" title="Öppna chatt">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
+          <path d="M7 9h10v2H7zm0-3h10v2H7z"/>
+        </svg>
+        <span class="chat-badge" id="chatBadge" style="display: none;">0</span>
+      </button>
+      
       <div class="tableau-container">
         <div class="tableau-title" id="tableauTitle">RUNDA 1 • INGEN HAR ASKEN</div>
         <div class="tableau" id="tableau"></div>
@@ -1663,6 +1875,23 @@
 
       <div class="game-footer" id="gameFooter">
         <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
+      </div>
+    </div>
+    
+    <!-- Chat-modal -->
+    <div class="chat-modal" id="chatModal">
+      <div class="chat-container">
+        <div class="chat-header">
+          <h3>💬 Chatt</h3>
+          <button class="chat-close" onclick="closeChat()">✕</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-empty">Inga meddelanden än. Säg hej!</div>
+        </div>
+        <div class="chat-input-area">
+          <input type="text" id="chatInput" placeholder="Skriv ett meddelande..." maxlength="200" onkeypress="handleChatKeypress(event)">
+          <button class="chat-send-btn" onclick="sendChatMessage()">Skicka</button>
+        </div>
       </div>
     </div>
 
@@ -1852,6 +2081,11 @@
 
       socket.on('error', ({ message }) => {
         showError(message);
+      });
+      
+      // Chat-meddelande
+      socket.on('chatMessage', (data) => {
+        addChatMessage(data);
       });
       
       // Ogiltigt drag (när hjälpläge är av)
@@ -2079,6 +2313,7 @@
       }
       gameState = null;
       selectedCardIds = [];
+      clearChat();
       clearSession();
       showScreen('menuScreen');
     }
@@ -2090,6 +2325,7 @@
       document.getElementById('modal').classList.remove('visible');
       gameState = null;
       selectedCardIds = [];
+      clearChat();
       clearSession();
       showScreen('menuScreen');
     }
@@ -2858,6 +3094,119 @@
         if (e.key === 'Enter') mainAction();
       });
     });
+    
+    // ============================================
+    // CHAT-FUNKTIONER
+    // ============================================
+    
+    let chatMessages = [];
+    let unreadCount = 0;
+    let chatOpen = false;
+    
+    function openChat() {
+      chatOpen = true;
+      unreadCount = 0;
+      updateChatBadge();
+      document.getElementById('chatModal').classList.add('visible');
+      document.getElementById('chatInput').focus();
+      scrollChatToBottom();
+    }
+    
+    function closeChat() {
+      chatOpen = false;
+      document.getElementById('chatModal').classList.remove('visible');
+    }
+    
+    function handleChatKeypress(event) {
+      if (event.key === 'Enter') {
+        sendChatMessage();
+      }
+    }
+    
+    function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const message = input.value.trim();
+      
+      if (!message || !socket || !gameState) return;
+      
+      socket.emit('chatMessage', message);
+      input.value = '';
+    }
+    
+    function addChatMessage(data) {
+      chatMessages.push(data);
+      
+      // Begränsa till 100 meddelanden
+      if (chatMessages.length > 100) {
+        chatMessages.shift();
+      }
+      
+      renderChatMessages();
+      
+      // Om chatten inte är öppen, öka oläst-räknaren
+      if (!chatOpen) {
+        unreadCount++;
+        updateChatBadge();
+      }
+    }
+    
+    function renderChatMessages() {
+      const container = document.getElementById('chatMessages');
+      
+      if (chatMessages.length === 0) {
+        container.innerHTML = '<div class="chat-empty">Inga meddelanden än. Säg hej!</div>';
+        return;
+      }
+      
+      container.innerHTML = chatMessages.map(msg => {
+        if (msg.system) {
+          return `<div class="chat-message system">${msg.text}</div>`;
+        }
+        
+        const time = new Date(msg.timestamp).toLocaleTimeString('sv-SE', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        
+        return `
+          <div class="chat-message">
+            <div class="chat-sender">${msg.sender}</div>
+            <div class="chat-text">${escapeHtml(msg.text)}</div>
+            <div class="chat-time">${time}</div>
+          </div>
+        `;
+      }).join('');
+      
+      scrollChatToBottom();
+    }
+    
+    function scrollChatToBottom() {
+      const container = document.getElementById('chatMessages');
+      container.scrollTop = container.scrollHeight;
+    }
+    
+    function updateChatBadge() {
+      const badge = document.getElementById('chatBadge');
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function clearChat() {
+      chatMessages = [];
+      unreadCount = 0;
+      updateChatBadge();
+      renderChatMessages();
+    }
     
     // ============================================
     // DELNINGSFUNKTIONER
