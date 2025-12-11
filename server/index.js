@@ -294,7 +294,29 @@ function canBePartOfSequence(card, hand, tableau) {
   const anyCardPlayed = Object.values(tableau).some(s => s !== null);
   
   if (!anyCardPlayed) {
-    return card.suit === 'spades' && card.rank === 7;
+    // Första draget - bara spader kan spelas
+    if (card.suit !== 'spades') return false;
+    
+    // Spader 7 är alltid spelbar
+    if (card.rank === 7) return true;
+    
+    // Andra spader-kort är spelbara om vi har hela kedjan till 7:an
+    const has7 = hand.some(c => c.suit === 'spades' && c.rank === 7);
+    if (!has7) return false;
+    
+    if (card.rank > 7) {
+      // Kolla att vi har alla kort från 8 upp till detta kort
+      for (let r = 8; r < card.rank; r++) {
+        if (!hand.some(c => c.suit === 'spades' && c.rank === r)) return false;
+      }
+      return true;
+    } else {
+      // Kolla att vi har alla kort från 6 ner till detta kort
+      for (let r = 6; r > card.rank; r--) {
+        if (!hand.some(c => c.suit === 'spades' && c.rank === r)) return false;
+      }
+      return true;
+    }
   }
   
   const suitState = tableau[card.suit];
@@ -1233,7 +1255,12 @@ io.on('connection', (socket) => {
     // Kolla om spelaren har spelbara kort
     const hasPlayable = player.hand.some(c => canBePartOfSequence(c, player.hand, room.tableau));
     if (hasPlayable) {
-      socket.emit('error', { message: 'Du måste spela om du kan!' });
+      // I standardläge (helpMode av): visa detaljerad modal
+      if (!room.helpMode) {
+        socket.emit('invalidMove', { message: 'Du har kort som kan spelas och måste därför lägga!' });
+      } else {
+        socket.emit('error', { message: 'Du måste spela om du kan!' });
+      }
       return;
     }
     
