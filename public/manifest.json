@@ -1,0 +1,35 @@
+{
+  "name": "Asken Online",
+  "short_name": "Asken",
+  "description": "Spela det klassiska svenska kortspelet Asken online gratis med vänner.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait",
+  "lang": "sv",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "/gfx/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/gfx/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/gfx/open_graph.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Asken Online - Spelvy"
+    }
+  ]
+}

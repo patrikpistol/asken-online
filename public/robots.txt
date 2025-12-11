@@ -1,0 +1,11 @@
+# robots.txt for Asken Online
+# https://asken.pistol.se
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://asken.pistol.se/sitemap.xml
+
+# Disallow socket.io endpoints
+Disallow: /socket.io/
