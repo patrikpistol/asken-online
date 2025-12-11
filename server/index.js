@@ -398,6 +398,17 @@ function buildInvalidMoveMessage(selectedCards, tableau) {
 function getPlayableOrder(selectedCards, tableau) {
   if (selectedCards.length === 0) return null;
   
+  // Kolla om detta är första draget (tableau är helt tomt)
+  const isFirstMove = !Object.values(tableau).some(s => s !== null);
+  
+  // Första draget: BARA spader 7, inget annat
+  if (isFirstMove) {
+    if (selectedCards.length !== 1) return null;
+    const card = selectedCards[0];
+    if (card.suit !== 'spades' || card.rank !== 7) return null;
+    return [card];
+  }
+  
   const simTableau = {
     spades: tableau.spades ? { ...tableau.spades } : null,
     hearts: tableau.hearts ? { ...tableau.hearts } : null,
