@@ -1,3 +1,15 @@
+/**
+ * Asken Online - Server
+ * 
+ * Det klassiska svenska kortspelet Asken, online!
+ * 
+ * Skapat av Patrik Pistol för Pistol Reklambyrå AB
+ * https://pistol.se
+ * https://patrikpistol.com
+ * 
+ * © 2024 Pistol Reklambyrå AB
+ */
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -97,6 +109,73 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 
 // Lokal cache för snabbare åtkomst
 const roomsCache = new Map();
+
+// ============================================
+// MATCHMAKING-KÖ
+// ============================================
+
+// Kö med spelare som söker match
+// Format: { socketId, name, joinedAt }
+const matchmakingQueue = [];
+
+// Matchmaking-rum (kod börjar alltid med "MM")
+const MATCHMAKING_ROOM_CODE = 'MATCHMAKING';
+
+function addToMatchmaking(socketId, name) {
+  // Ta bort om redan finns
+  removeFromMatchmaking(socketId);
+  
+  matchmakingQueue.push({
+    socketId,
+    name,
+    joinedAt: Date.now()
+  });
+  
+  console.log(`[Matchmaking] ${name} gick med i kön. Totalt: ${matchmakingQueue.length}`);
+  broadcastMatchmakingState();
+}
+
+function removeFromMatchmaking(socketId) {
+  const index = matchmakingQueue.findIndex(p => p.socketId === socketId);
+  if (index !== -1) {
+    const removed = matchmakingQueue.splice(index, 1)[0];
+    console.log(`[Matchmaking] ${removed.name} lämnade kön. Totalt: ${matchmakingQueue.length}`);
+    broadcastMatchmakingState();
+    return removed;
+  }
+  return null;
+}
+
+function getMatchmakingState() {
+  // Den som väntat längst är värd (index 0)
+  const players = matchmakingQueue.map((p, index) => ({
+    id: p.socketId,
+    name: p.name,
+    isHost: index === 0,
+    position: index + 1
+  }));
+  
+  return {
+    queueCount: matchmakingQueue.length,
+    players,
+    hostId: matchmakingQueue.length > 0 ? matchmakingQueue[0].socketId : null
+  };
+}
+
+function broadcastMatchmakingState() {
+  const state = getMatchmakingState();
+  
+  matchmakingQueue.forEach((player, index) => {
+    const socket = io.sockets.sockets.get(player.socketId);
+    if (socket) {
+      socket.emit('matchmakingUpdate', {
+        ...state,
+        position: index + 1,
+        isHost: index === 0
+      });
+    }
+  });
+}
 
 // Spara rum till Redis
 async function saveRoom(room) {
@@ -835,6 +914,81 @@ io.on('connection', (socket) => {
   
   let currentRoom = null;
   let playerName = null;
+  let inMatchmaking = false;
+  
+  // ============================================
+  // MATCHMAKING EVENTS
+  // ============================================
+  
+  // Gå med i matchmaking-kön
+  socket.on('joinMatchmaking', (name) => {
+    playerName = name;
+    inMatchmaking = true;
+    addToMatchmaking(socket.id, name);
+  });
+  
+  // Lämna matchmaking-kön
+  socket.on('leaveMatchmaking', () => {
+    inMatchmaking = false;
+    removeFromMatchmaking(socket.id);
+  });
+  
+  // Starta matchmaking-spel (endast värd)
+  socket.on('startMatchmakingGame', async () => {
+    const state = getMatchmakingState();
+    
+    // Kontrollera att denna spelare är värd
+    if (state.hostId !== socket.id) {
+      socket.emit('error', { message: 'Endast värden kan starta spelet' });
+      return;
+    }
+    
+    // Minst 2 spelare krävs
+    if (matchmakingQueue.length < 2) {
+      socket.emit('error', { message: 'Minst 2 spelare krävs för att starta' });
+      return;
+    }
+    
+    // Skapa ett vanligt rum med alla i kön
+    const playersToAdd = [...matchmakingQueue];
+    const hostPlayer = playersToAdd[0];
+    
+    // Skapa rum med värden
+    const room = await createRoom(hostPlayer.socketId, hostPlayer.name);
+    
+    // Lägg till övriga spelare
+    for (let i = 1; i < playersToAdd.length && room.players.length < 7; i++) {
+      const player = playersToAdd[i];
+      room.players.push({
+        id: player.socketId,
+        name: player.name,
+        hand: [],
+        score: 0,
+        connected: true
+      });
+    }
+    
+    await saveRoom(room);
+    
+    // Flytta alla spelare till rummet
+    for (const player of playersToAdd) {
+      const playerSocket = io.sockets.sockets.get(player.socketId);
+      if (playerSocket) {
+        playerSocket.join(room.code);
+        playerSocket.emit('matchmakingGameStarted', { code: room.code });
+      }
+      removeFromMatchmaking(player.socketId);
+    }
+    
+    // Skicka rumstillstånd till alla
+    emitRoomState(room);
+    
+    console.log(`[Matchmaking] Spel startat med ${room.players.length} spelare i rum ${room.code}`);
+  });
+  
+  // ============================================
+  // ROOM EVENTS
+  // ============================================
   
   // Skapa rum
   socket.on('createRoom', async (name) => {
@@ -1341,6 +1495,11 @@ io.on('connection', (socket) => {
   // Frånkoppling
   socket.on('disconnect', async () => {
     console.log('Spelare frånkopplad:', socket.id);
+    
+    // Ta bort från matchmaking-kön om där
+    if (inMatchmaking) {
+      removeFromMatchmaking(socket.id);
+    }
     
     // Markera spelaren som frånkopplad
     if (currentRoom) {
