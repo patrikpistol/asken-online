@@ -363,7 +363,7 @@ function buildInvalidMoveMessage(selectedCards, tableau) {
     if (!suitState) {
       // Färgen är inte startad
       if (card.rank !== 7) {
-        reasons.push(`<strong>${rankName} ${suitName}</strong> kan inte spelas - ${suitName} måste startas med en sjua.`);
+        reasons.push(`<strong>${suitName} ${rankName}</strong> kan inte spelas - ${suitName} måste startas med en sjua.`);
       }
     } else {
       // Färgen är startad - kolla om kortet passar
@@ -373,12 +373,12 @@ function buildInvalidMoveMessage(selectedCards, tableau) {
       if (!canPlayLow && !canPlayHigh) {
         if (card.rank < suitState.low) {
           const needed = suitState.low - 1;
-          reasons.push(`<strong>${rankName} ${suitName}</strong> kan inte spelas - du måste först lägga ${RANK_NAMES_SV[needed]} ${suitName}.`);
+          reasons.push(`<strong>${suitName} ${rankName}</strong> kan inte spelas - du måste först lägga ${suitName} ${RANK_NAMES_SV[needed]}.`);
         } else if (card.rank > suitState.high) {
           const needed = suitState.high + 1;
-          reasons.push(`<strong>${rankName} ${suitName}</strong> kan inte spelas - du måste först lägga ${RANK_NAMES_SV[needed]} ${suitName}.`);
+          reasons.push(`<strong>${suitName} ${rankName}</strong> kan inte spelas - du måste först lägga ${suitName} ${RANK_NAMES_SV[needed]}.`);
         } else {
-          reasons.push(`<strong>${rankName} ${suitName}</strong> ligger redan på bordet.`);
+          reasons.push(`<strong>${suitName} ${rankName}</strong> ligger redan på bordet.`);
         }
       }
     }
