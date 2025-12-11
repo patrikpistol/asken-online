@@ -13,8 +13,10 @@ const io = new Server(server, {
     origin: "*",
     methods: ["GET", "POST"]
   },
-  pingTimeout: 60000,
-  pingInterval: 25000
+  pingTimeout: 120000,    // 2 minuter timeout
+  pingInterval: 30000,    // Ping var 30:e sekund
+  connectTimeout: 45000,  // 45 sek för initial anslutning
+  allowEIO3: true         // Bakåtkompatibilitet
 });
 
 // ============================================
@@ -98,34 +100,37 @@ const roomsCache = new Map();
 
 // Spara rum till Redis
 async function saveRoom(room) {
-  roomsCache.set(room.code, room);
+  room.lastActivity = Date.now();
+  
+  // Spara alltid i lokal cache först
+  roomsCache.set(room.code, JSON.parse(JSON.stringify(room))); // Deep copy
   
   if (redis) {
-    try {
-      await redis.set(`room:${room.code}`, JSON.stringify(room), { ex: ROOM_EXPIRY });
-    } catch (err) {
-      console.error('Redis save error:', err.message);
-    }
+    // Spara till Redis i bakgrunden
+    redis.set(`room:${room.code}`, JSON.stringify(room), { ex: ROOM_EXPIRY })
+      .catch(err => console.error('Redis save error:', err.message));
   }
+  return true;
 }
 
-// Hämta rum (först från cache, sedan från Redis)
+// Hämta rum - prioriterar alltid lokal cache
 async function getRoom(code) {
   if (!code) return null;
   code = code.toUpperCase();
   
-  // Kolla cache först
+  // Kolla cache först - lita på cachen!
   if (roomsCache.has(code)) {
     return roomsCache.get(code);
   }
   
-  // Annars kolla Redis
+  // Om inte i cache, försök Redis
   if (redis) {
     try {
       const data = await redis.get(`room:${code}`);
       if (data) {
         const room = typeof data === 'string' ? JSON.parse(data) : data;
         roomsCache.set(code, room);
+        console.log(`Rum ${code} hämtat från Redis`);
         return room;
       }
     } catch (err) {
@@ -808,12 +813,18 @@ io.on('connection', (socket) => {
   
   // Återanslut till rum (efter disconnect)
   socket.on('rejoinRoom', async ({ code, name }) => {
+    console.log(`Försöker återansluta ${name} till rum ${code}`);
+    
     const room = await getRoom(code);
     
     if (!room) {
+      console.log(`Rum ${code} finns inte i Redis/cache`);
       socket.emit('rejoinFailed', { message: 'Rummet finns inte längre' });
       return;
     }
+    
+    // Rensa bort gamla frånkopplade spelare först
+    await cleanupDisconnectedPlayers(room);
     
     // Hitta spelaren med samma namn
     const existingPlayer = room.players.find(p => 
@@ -825,6 +836,7 @@ io.on('connection', (socket) => {
       const oldId = existingPlayer.id;
       existingPlayer.id = socket.id;
       existingPlayer.connected = true;
+      existingPlayer.disconnectedAt = null;
       
       // Uppdatera host om det var denna spelare
       if (room.hostId === oldId) {
@@ -857,7 +869,8 @@ io.on('connection', (socket) => {
           name,
           hand: [],
           score: 0,
-          connected: true
+          connected: true,
+          disconnectedAt: null
         });
         
         room.lastActivity = Date.now();
@@ -866,15 +879,37 @@ io.on('connection', (socket) => {
         socket.join(room.code);
         socket.emit('rejoinSuccess', { code: room.code });
         emitRoomState(room);
+        console.log(`Ny spelare ${name} gick med i rum ${code}`);
       } else {
-        socket.emit('rejoinFailed', { message: 'Kunde inte återansluta' });
+        console.log(`Kunde inte återansluta ${name} till rum ${code} (spelet pågår eller fullt)`);
+        socket.emit('rejoinFailed', { message: 'Kunde inte återansluta - spelet har redan börjat' });
       }
     }
   });
   
   // Keepalive ping
-  socket.on('ping', () => {
+  socket.on('ping', async () => {
     socket.emit('pong');
+    
+    // Uppdatera rummets lastActivity
+    if (currentRoom) {
+      const room = await getRoom(currentRoom);
+      if (room) {
+        room.lastActivity = Date.now();
+        
+        // Markera spelaren som ansluten
+        const player = room.players.find(p => p.id === socket.id);
+        if (player) {
+          player.connected = true;
+          player.disconnectedAt = null;
+        }
+        
+        // Rensa bort gamla frånkopplade spelare
+        await cleanupDisconnectedPlayers(room);
+        
+        await saveRoom(room);
+      }
+    }
   });
   
   // Lägg till robot
@@ -1198,44 +1233,72 @@ io.on('connection', (socket) => {
   socket.on('disconnect', async () => {
     console.log('Spelare frånkopplad:', socket.id);
     
-    // Markera spelaren som frånkopplad istället för att ta bort
+    // Markera spelaren som frånkopplad
     if (currentRoom) {
       const room = await getRoom(currentRoom);
       if (room) {
         const player = room.players.find(p => p.id === socket.id);
         if (player) {
           player.connected = false;
+          player.disconnectedAt = Date.now();
           await saveRoom(room);
           
-          // Vänta 30 sekunder innan vi faktiskt tar bort spelaren
-          setTimeout(async () => {
-            const roomNow = await getRoom(currentRoom);
-            if (roomNow) {
-              const playerNow = roomNow.players.find(p => p.name === player.name);
-              if (playerNow && !playerNow.connected) {
-                // Spelaren har inte återanslutit - ta bort
-                const playerIndex = roomNow.players.indexOf(playerNow);
-                if (playerIndex >= 0) {
-                  roomNow.players.splice(playerIndex, 1);
-                }
-                
-                if (roomNow.players.length === 0) {
-                  await deleteRoom(currentRoom);
-                  console.log(`Rum ${currentRoom} borttaget (tomt)`);
-                } else {
-                  if (roomNow.hostId === socket.id) {
-                    roomNow.hostId = roomNow.players[0].id;
-                  }
-                  await saveRoom(roomNow);
-                  emitRoomState(roomNow);
-                }
-              }
-            }
-          }, 30000);
+          // Informera andra spelare om frånkopplingen
+          emitRoomState(room);
+          
+          console.log(`Spelare ${player.name} markerad som frånkopplad i rum ${currentRoom}`);
         }
       }
     }
   });
+  
+  // Periodisk rensning av frånkopplade spelare (körs vid varje ny anslutning)
+  async function cleanupDisconnectedPlayers(room) {
+    if (!room) return false;
+    
+    const now = Date.now();
+    const DISCONNECT_TIMEOUT = 120000; // 2 minuter timeout
+    let changed = false;
+    
+    // Hitta spelare som varit frånkopplade för länge
+    const playersToRemove = room.players.filter(p => 
+      !p.isBot && 
+      !p.connected && 
+      p.disconnectedAt && 
+      (now - p.disconnectedAt > DISCONNECT_TIMEOUT)
+    );
+    
+    for (const player of playersToRemove) {
+      const index = room.players.indexOf(player);
+      if (index >= 0) {
+        console.log(`Tar bort frånkopplad spelare ${player.name} från rum ${room.code}`);
+        room.players.splice(index, 1);
+        changed = true;
+        
+        // Om det var host, sätt ny host
+        if (room.hostId === player.id && room.players.length > 0) {
+          const newHost = room.players.find(p => !p.isBot);
+          if (newHost) {
+            room.hostId = newHost.id;
+          }
+        }
+      }
+    }
+    
+    // Om rummet är tomt, ta bort det
+    if (room.players.length === 0) {
+      await deleteRoom(room.code);
+      console.log(`Rum ${room.code} borttaget (tomt efter cleanup)`);
+      return true;
+    }
+    
+    if (changed) {
+      await saveRoom(room);
+      emitRoomState(room);
+    }
+    
+    return changed;
+  }
   
   async function leaveCurrentRoom() {
     if (!currentRoom) return;
@@ -1374,4 +1437,31 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Asken-server körs på port ${PORT}`);
+  console.log(`Redis: ${redis ? 'aktiverat' : 'ej konfigurerat'}`);
 });
+
+// Periodisk synkronisering av cache till Redis (var 5:e minut)
+setInterval(async () => {
+  if (!redis) return;
+  
+  let syncCount = 0;
+  for (const [code, room] of roomsCache.entries()) {
+    try {
+      await redis.set(`room:${code}`, JSON.stringify(room), { ex: ROOM_EXPIRY });
+      syncCount++;
+    } catch (err) {
+      console.error(`Kunde inte synka rum ${code}:`, err.message);
+    }
+  }
+  
+  if (syncCount > 0) {
+    console.log(`Synkade ${syncCount} rum till Redis`);
+  }
+}, 300000); // 5 minuter
+
+// Logga aktiva anslutningar periodiskt (var 10:e minut)
+setInterval(() => {
+  const sockets = io.sockets.sockets;
+  const roomCount = roomsCache.size;
+  console.log(`Status: ${sockets.size} anslutna sockets, ${roomCount} aktiva rum i cache`);
+}, 600000); // 10 minuter
