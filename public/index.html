@@ -68,7 +68,8 @@
       background: var(--bg-card) url('gfx/bg_dark_steel.webp') repeat;
       border-radius: 16px;
       padding: 32px;
-      max-width: 400px;
+      width: 100%;
+      max-width: 600px;
       margin: 40px auto;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     }
@@ -78,7 +79,7 @@
     }
     
     .game-logo {
-      max-width: 200px;
+      max-width: 280px;
       height: auto;
       display: block;
       margin: 0 auto 24px auto;
@@ -86,8 +87,11 @@
     
     .form-row {
       display: flex;
-      gap: 12px;
+      gap: 16px;
       margin-bottom: 20px;
+      max-width: 450px;
+      margin-left: auto;
+      margin-right: auto;
     }
     
     .form-row .form-group {
@@ -133,6 +137,10 @@
 
     .btn {
       width: 100%;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      display: block;
       padding: 14px;
       border: none;
       border-radius: 10px;
@@ -228,7 +236,8 @@
       background: var(--bg-card) url('gfx/bg_dark_steel.webp') repeat;
       border-radius: 16px;
       padding: 32px;
-      max-width: 500px;
+      width: 100%;
+      max-width: 600px;
       margin: 40px auto;
       text-align: center;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -674,15 +683,15 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 76px;
+      min-height: 90px;
       justify-content: flex-end;
       flex-shrink: 0;
       overflow: visible;
-      padding: 15px 8px 4px 8px;
+      padding: 12px 4px 0 4px;
     }
     
     .card-stack-upper .table-card {
-      margin-top: -56px;
+      margin-top: -58px;
     }
     
     .card-stack-upper .table-card:first-child {
@@ -693,25 +702,26 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      height: 80px;
+      justify-content: center;
+      height: 76px;
       flex-shrink: 0;
       overflow: visible;
-      padding: 4px 8px;
+      padding: 2px 4px;
     }
 
     .card-stack-lower {
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 76px;
+      min-height: 90px;
       justify-content: flex-start;
       flex-shrink: 0;
       overflow: visible;
-      padding: 4px 8px 15px 8px;
+      padding: 0 4px 12px 4px;
     }
     
     .card-stack-lower .table-card {
-      margin-top: -56px;
+      margin-top: -58px;
     }
     
     .card-stack-lower .table-card:first-child {
@@ -1269,13 +1279,24 @@
       }
 
       .suit-column {
-        padding: 8px;
-        min-width: 55px;
+        padding: 8px 4px;
+        min-width: 50px;
       }
 
       .card-stack-upper,
       .card-stack-lower {
-        height: 62px;
+        min-height: 60px;
+        padding: 8px 2px;
+      }
+      
+      .card-stack-upper .table-card,
+      .card-stack-lower .table-card {
+        margin-top: -44px;
+      }
+      
+      .card-stack-upper .table-card:first-child,
+      .card-stack-lower .table-card:first-child {
+        margin-top: 0;
       }
 
       .card-stack-seven {
