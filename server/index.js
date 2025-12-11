@@ -294,29 +294,8 @@ function canBePartOfSequence(card, hand, tableau) {
   const anyCardPlayed = Object.values(tableau).some(s => s !== null);
   
   if (!anyCardPlayed) {
-    // Första draget - bara spader kan spelas
-    if (card.suit !== 'spades') return false;
-    
-    // Spader 7 är alltid spelbar
-    if (card.rank === 7) return true;
-    
-    // Andra spader-kort är spelbara om vi har hela kedjan till 7:an
-    const has7 = hand.some(c => c.suit === 'spades' && c.rank === 7);
-    if (!has7) return false;
-    
-    if (card.rank > 7) {
-      // Kolla att vi har alla kort från 8 upp till detta kort
-      for (let r = 8; r < card.rank; r++) {
-        if (!hand.some(c => c.suit === 'spades' && c.rank === r)) return false;
-      }
-      return true;
-    } else {
-      // Kolla att vi har alla kort från 6 ner till detta kort
-      for (let r = 6; r > card.rank; r--) {
-        if (!hand.some(c => c.suit === 'spades' && c.rank === r)) return false;
-      }
-      return true;
-    }
+    // Första draget - BARA spader 7, inget annat
+    return card.suit === 'spades' && card.rank === 7;
   }
   
   const suitState = tableau[card.suit];
@@ -371,6 +350,9 @@ function buildInvalidMoveMessage(selectedCards, tableau) {
     11: 'knekt', 12: 'dam', 13: 'kung' 
   };
   
+  // Gör första bokstaven stor
+  const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+  
   if (selectedCards.length === 0) {
     return 'Inga kort valda.';
   }
@@ -385,7 +367,7 @@ function buildInvalidMoveMessage(selectedCards, tableau) {
     if (!suitState) {
       // Färgen är inte startad
       if (card.rank !== 7) {
-        reasons.push(`<strong>${suitName} ${rankName}</strong> kan inte spelas - ${suitName} måste startas med en sjua.`);
+        reasons.push(`<strong>${capitalize(suitName)} ${rankName}</strong> kan inte spelas. ${capitalize(suitName)} måste startas med en sjua.`);
       }
     } else {
       // Färgen är startad - kolla om kortet passar
@@ -395,12 +377,12 @@ function buildInvalidMoveMessage(selectedCards, tableau) {
       if (!canPlayLow && !canPlayHigh) {
         if (card.rank < suitState.low) {
           const needed = suitState.low - 1;
-          reasons.push(`<strong>${suitName} ${rankName}</strong> kan inte spelas - du måste först lägga ${suitName} ${RANK_NAMES_SV[needed]}.`);
+          reasons.push(`<strong>${capitalize(suitName)} ${rankName}</strong> kan inte spelas. Först måste ${suitName} ${RANK_NAMES_SV[needed]} spelas.`);
         } else if (card.rank > suitState.high) {
           const needed = suitState.high + 1;
-          reasons.push(`<strong>${suitName} ${rankName}</strong> kan inte spelas - du måste först lägga ${suitName} ${RANK_NAMES_SV[needed]}.`);
+          reasons.push(`<strong>${capitalize(suitName)} ${rankName}</strong> kan inte spelas. Först måste ${suitName} ${RANK_NAMES_SV[needed]} spelas.`);
         } else {
-          reasons.push(`<strong>${suitName} ${rankName}</strong> ligger redan på bordet.`);
+          reasons.push(`<strong>${capitalize(suitName)} ${rankName}</strong> ligger redan på bordet.`);
         }
       }
     }
