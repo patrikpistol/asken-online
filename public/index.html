@@ -1789,7 +1789,7 @@
         </div>
         <div class="player-list" id="matchmakingPlayerList"></div>
         <div id="matchmakingControls" style="display: none;">
-          <p class="host-notice">Du är värd! Starta när ni är redo.</p>
+          <p class="host-notice">Alla kan starta spelet!</p>
           <button class="btn btn-primary" onclick="startMatchmakingGame()">Starta spel</button>
         </div>
         <button class="btn btn-secondary" onclick="leaveMatchmaking()">Avbryt sökning</button>
@@ -2252,9 +2252,9 @@
       document.getElementById('queueCount').textContent = state.queueCount;
       document.getElementById('queuePosition').textContent = state.position;
       
-      // Visa/dölj värdkontroller
+      // Visa starta-knappen för alla när det finns minst 2 spelare
       const controls = document.getElementById('matchmakingControls');
-      if (state.isHost && state.queueCount >= 2) {
+      if (state.queueCount >= 2) {
         controls.style.display = 'block';
       } else {
         controls.style.display = 'none';
@@ -2264,17 +2264,15 @@
       const status = document.getElementById('matchmakingStatus');
       if (state.queueCount === 1) {
         status.textContent = 'Väntar på fler spelare...';
-      } else if (state.isHost) {
-        status.textContent = `${state.queueCount} spelare redo! Du är värd.`;
       } else {
-        status.textContent = `${state.queueCount} spelare i kön. Väntar på värden...`;
+        status.textContent = `${state.queueCount} spelare redo! Vem som helst kan starta.`;
       }
       
-      // Rendera spelarlista
+      // Rendera spelarlista (ta bort värd-markering)
       const list = document.getElementById('matchmakingPlayerList');
       list.innerHTML = state.players.map(p => `
-        <div class="player-item${p.isHost ? ' host' : ''}">
-          <span class="player-name">${p.name}${p.isHost ? ' 👑' : ''}</span>
+        <div class="player-item">
+          <span class="player-name">${p.name}</span>
           <span class="player-status">Plats ${p.position}</span>
         </div>
       `).join('');
