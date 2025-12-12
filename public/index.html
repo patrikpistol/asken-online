@@ -3216,9 +3216,26 @@
     const SHARE_TITLE = 'Asken Online – Spela klassiska kortspelet gratis';
     const SHARE_TEXT = 'Spela Asken online gratis med vänner! Det klassiska svenska kortspelet där du tävlar om att bli av med alla kort först.';
     
+    function isMobile() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
     function shareToFacebook() {
-      const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}`;
-      window.open(url, '_blank', 'width=600,height=400');
+      if (isMobile()) {
+        // Facebook app med förkomponerat meddelande via fb://
+        // Fallback till messenger om Facebook-appen inte kan dela direkt
+        const fbAppUrl = `fb://share?quote=${encodeURIComponent(SHARE_TEXT)}&href=${encodeURIComponent(SHARE_URL)}`;
+        const webUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&quote=${encodeURIComponent(SHARE_TEXT)}`;
+        
+        // Försök öppna appen, fallback till webb
+        window.location.href = fbAppUrl;
+        setTimeout(() => {
+          window.open(webUrl, '_blank');
+        }, 500);
+      } else {
+        const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&quote=${encodeURIComponent(SHARE_TEXT)}`;
+        window.open(url, '_blank', 'width=600,height=400');
+      }
     }
     
     function shareToTwitter() {
@@ -3227,8 +3244,20 @@
     }
     
     function shareToLinkedIn() {
-      const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SHARE_URL)}`;
-      window.open(url, '_blank', 'width=600,height=400');
+      if (isMobile()) {
+        // LinkedIn app deep link
+        const linkedInAppUrl = `linkedin://shareArticle?mini=true&url=${encodeURIComponent(SHARE_URL)}&title=${encodeURIComponent(SHARE_TITLE)}&summary=${encodeURIComponent(SHARE_TEXT)}`;
+        const webUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SHARE_URL)}`;
+        
+        // Försök öppna appen, fallback till webb
+        window.location.href = linkedInAppUrl;
+        setTimeout(() => {
+          window.open(webUrl, '_blank');
+        }, 500);
+      } else {
+        const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(SHARE_URL)}`;
+        window.open(url, '_blank', 'width=600,height=400');
+      }
     }
     
     function shareToReddit() {
