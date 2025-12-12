@@ -469,13 +469,15 @@
           <li><a href="#klient">5. Klientsidan</a></li>
           <li><a href="#server">6. Serversidan</a></li>
           <li><a href="#realtid">7. Realtidskommunikation</a></li>
-          <li><a href="#spellogik">8. Spellogik</a></li>
-          <li><a href="#robot">9. Robot-AI</a></li>
-          <li><a href="#deployment">10. Deployment</a></li>
+          <li><a href="#matchmaking">8. Matchmaking</a></li>
+          <li><a href="#chatt">9. Chatt</a></li>
+          <li><a href="#spellogik">10. Spellogik</a></li>
+          <li><a href="#robot">11. Robot-AI</a></li>
+          <li><a href="#deployment">12. Deployment</a></li>
         </ul>
       </div>
       
-      <p class="version-info">Version 1.0 • December 2024</p>
+      <p class="version-info">Version 1.1 • December 2025</p>
     </div>
 
     <!-- Projektöversikt -->
@@ -484,30 +486,38 @@
       <p>
         <strong>Asken Online</strong> är en webbbaserad multiplayer-implementation av det klassiska 
         svenska kortspelet "Asken" (även känt som "Sjuan" eller "Fan"). Spelet låter 3-7 spelare 
-        tävla i realtid via webben, med stöd för robotspelare med anpassningsbar intelligens.
+        (människor och/eller robotar) tävla i realtid via webben.
       </p>
       
       <h3>Huvudfunktioner</h3>
       <div class="feature-list">
         <div class="feature-item">
           <div class="feature-item-title">Multiplayer</div>
-          <div class="feature-item-desc">3-7 spelare i realtid</div>
+          <div class="feature-item-desc">3-7 spelare (människor/robotar)</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-item-title">Matchmaking</div>
+          <div class="feature-item-desc">Hitta andra spelare automatiskt</div>
         </div>
         <div class="feature-item">
           <div class="feature-item-title">Robotspelare</div>
           <div class="feature-item-desc">3 svårighetsgrader</div>
         </div>
         <div class="feature-item">
+          <div class="feature-item-title">Chatt</div>
+          <div class="feature-item-desc">Prata med medspelare</div>
+        </div>
+        <div class="feature-item">
           <div class="feature-item-title">Persistence</div>
-          <div class="feature-item-desc">Redis-lagring 24h</div>
+          <div class="feature-item-desc">Redis-lagring 48h</div>
         </div>
         <div class="feature-item">
           <div class="feature-item-title">Responsiv</div>
           <div class="feature-item-desc">Mobil & desktop</div>
         </div>
         <div class="feature-item">
-          <div class="feature-item-title">Inbjudningar</div>
-          <div class="feature-item-desc">Delningslänkar</div>
+          <div class="feature-item-title">Delning</div>
+          <div class="feature-item-desc">Dela till sociala medier</div>
         </div>
         <div class="feature-item">
           <div class="feature-item-title">Spellägen</div>
@@ -691,11 +701,11 @@ const server = http.createServer(app);
 const io = new Server(server);</code></pre>
 
       <h3>Redis-integration</h3>
-      <pre><code>// Spara rum med 24h TTL
+      <pre><code>// Spara rum med 48h TTL
 async function saveRoom(room) {
   await redis.setex(
     `room:${room.code}`, 
-    86400,  // 24 timmar
+    172800,  // 48 timmar
     JSON.stringify(room)
   );
 }
@@ -796,12 +806,91 @@ async function getRoom(code) {
       <p>
         Klienten skickar regelbundna <code>keepalive</code>-meddelanden för att 
         uppdatera <code>lastActivity</code> i rummet och förhindra timeout.
+        Spelare har 12 timmar på sig att återansluta efter en frånkoppling.
       </p>
+    </div>
+    
+    <!-- Matchmaking -->
+    <div class="card" id="matchmaking">
+      <h2>8. Matchmaking</h2>
+      
+      <p>
+        Matchmaking-systemet låter spelare hitta varandra utan att behöva dela rumskoder.
+        En global kö hanteras i minnet på servern.
+      </p>
+
+      <h3>Köhantering</h3>
+      <pre><code>const matchmakingQueue = [];
+// Format: { socketId, name, joinedAt }
+
+function addToMatchmaking(socketId, name) {
+  matchmakingQueue.push({
+    socketId,
+    name,
+    joinedAt: Date.now()
+  });
+  broadcastMatchmakingState();
+}
+
+function getMatchmakingState() {
+  return {
+    queueCount: matchmakingQueue.length,
+    players: matchmakingQueue.map((p, i) => ({
+      name: p.name,
+      position: i + 1
+    }))
+  };
+}</code></pre>
+
+      <h3>Spelstart</h3>
+      <p>
+        När minst 2 spelare finns i kön kan vem som helst starta spelet.
+        Den som startar blir värd och alla i kön flyttas till ett nytt rum.
+      </p>
+    </div>
+    
+    <!-- Chatt -->
+    <div class="card" id="chatt">
+      <h2>9. Chatt</h2>
+      
+      <p>
+        Spelarna kan kommunicera via en inbyggd chatt under spelets gång.
+        Meddelanden skickas via Socket.io och visas för alla i rummet.
+      </p>
+
+      <h3>Implementation</h3>
+      <pre><code>// Server
+socket.on('chatMessage', async (text) => {
+  const cleanText = String(text).trim().slice(0, 200);
+  if (!cleanText) return;
+  
+  io.to(currentRoom).emit('chatMessage', {
+    sender: playerName,
+    text: cleanText,
+    timestamp: Date.now()
+  });
+});
+
+// Klient
+function addChatMessage(data) {
+  chatMessages.push(data);
+  if (!chatOpen) unreadCount++;
+  renderChatMessages();
+}</code></pre>
+
+      <h3>Funktioner</h3>
+      <ul>
+        <li>Max 200 tecken per meddelande</li>
+        <li>Max 100 meddelanden i historiken</li>
+        <li>Oläst-räknare när chatten är stängd</li>
+        <li>Tidsstämplar (HH:MM)</li>
+        <li>HTML-escaping för säkerhet</li>
+      </ul>
     </div>
 
     <!-- Spellogik -->
     <div class="card" id="spellogik">
-      <h2>8. Spellogik</h2>
+      <h2>10. Spellogik</h2>
 
       <h3>Kortrepresentation</h3>
       <pre><code>const card = {
@@ -852,7 +941,7 @@ async function getRoom(code) {
 
     <!-- Robot-AI -->
     <div class="card" id="robot">
-      <h2>9. Robot-AI</h2>
+      <h2>11. Robot-AI</h2>
       
       <p>
         Robotspelare implementeras helt på serversidan. När det är en robots tur 
@@ -908,7 +997,7 @@ for (const seq of allSequences) {
 
     <!-- Deployment -->
     <div class="card" id="deployment">
-      <h2>10. Deployment</h2>
+      <h2>12. Deployment</h2>
       
       <p>
         Applikationen är deployad på <strong>Render</strong> med en extern 
