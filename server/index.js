@@ -94,7 +94,7 @@ function getRandomBotName(existingNames) {
 // ============================================
 
 let redis = null;
-const ROOM_EXPIRY = 86400; // Rum försvinner efter 24 timmar utan aktivitet
+const ROOM_EXPIRY = 172800; // Rum försvinner efter 48 timmar utan aktivitet
 
 // Initiera Redis om miljövariabler finns
 if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
@@ -933,13 +933,12 @@ io.on('connection', (socket) => {
     removeFromMatchmaking(socket.id);
   });
   
-  // Starta matchmaking-spel (endast värd)
+  // Starta matchmaking-spel (alla i kön kan starta)
   socket.on('startMatchmakingGame', async () => {
-    const state = getMatchmakingState();
-    
-    // Kontrollera att denna spelare är värd
-    if (state.hostId !== socket.id) {
-      socket.emit('error', { message: 'Endast värden kan starta spelet' });
+    // Kontrollera att denna spelare är i kön
+    const playerInQueue = matchmakingQueue.find(p => p.socketId === socket.id);
+    if (!playerInQueue) {
+      socket.emit('error', { message: 'Du är inte i matchmaking-kön' });
       return;
     }
     
@@ -949,8 +948,16 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // Skapa ett vanligt rum med alla i kön
+    // Skapa ett vanligt rum - den som startar blir värd
     const playersToAdd = [...matchmakingQueue];
+    
+    // Flytta den som startade till första plats (blir värd)
+    const starterIndex = playersToAdd.findIndex(p => p.socketId === socket.id);
+    if (starterIndex > 0) {
+      const starter = playersToAdd.splice(starterIndex, 1)[0];
+      playersToAdd.unshift(starter);
+    }
+    
     const hostPlayer = playersToAdd[0];
     
     // Skapa rum med värden
@@ -1572,7 +1579,7 @@ io.on('connection', (socket) => {
     if (!room) return false;
     
     const now = Date.now();
-    const DISCONNECT_TIMEOUT = 120000; // 2 minuter timeout
+    const DISCONNECT_TIMEOUT = 43200000; // 12 timmar timeout (spelare kan sova och fortsätta)
     let changed = false;
     
     // Hitta spelare som varit frånkopplade för länge
