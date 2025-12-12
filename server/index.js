@@ -1311,6 +1311,32 @@ io.on('connection', (socket) => {
     socket.emit('cardsSelected', cardIds);
   });
   
+  // ============================================
+  // CHAT
+  // ============================================
+  
+  socket.on('chatMessage', async (text) => {
+    if (!currentRoom || !playerName) return;
+    
+    // Begränsa meddelandelängd
+    const cleanText = String(text).trim().slice(0, 200);
+    if (!cleanText) return;
+    
+    const room = await getRoom(currentRoom);
+    if (!room) return;
+    
+    const chatData = {
+      sender: playerName,
+      text: cleanText,
+      timestamp: Date.now()
+    };
+    
+    // Skicka till alla i rummet
+    io.to(currentRoom).emit('chatMessage', chatData);
+    
+    console.log(`[Chat] ${playerName} i ${currentRoom}: ${cleanText}`);
+  });
+  
   // Spela kort
   socket.on('playCards', async (cardIds) => {
     const room = await getRoom(currentRoom);
