@@ -389,7 +389,12 @@
       color: var(--text);
     }
     
-    .matchmaking-table td:first-child {
+    .matchmaking-table .col-select {
+      width: 40px;
+      text-align: center;
+    }
+    
+    .matchmaking-table td:nth-child(2) {
       color: var(--accent);
       font-weight: bold;
     }
@@ -400,6 +405,31 @@
     
     .matchmaking-table tr.is-me td {
       font-weight: 600;
+    }
+    
+    .matchmaking-table tr.selected {
+      background: rgba(76, 175, 80, 0.15);
+    }
+    
+    .matchmaking-table input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+    
+    .matchmaking-table tr.is-me input[type="checkbox"] {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    
+    #startWithSelectedBtn {
+      background: var(--green);
+      color: white;
+    }
+    
+    #startWithSelectedBtn:hover {
+      background: #3d8b40;
     }
     
     .host-notice {
@@ -1842,6 +1872,7 @@
         <table class="matchmaking-table" id="matchmakingTable">
           <thead>
             <tr>
+              <th class="col-select"></th>
               <th>Plats</th>
               <th>Namn</th>
               <th>Väntat</th>
@@ -1853,7 +1884,10 @@
         
         <div id="matchmakingControls" style="display: none;">
           <p class="host-notice">Alla kan starta spelet!</p>
-          <button class="btn btn-primary" onclick="startMatchmakingGame()">Starta spel</button>
+          <button class="btn btn-primary" onclick="startMatchmakingGame()">Starta spel med alla</button>
+          <button class="btn btn-secondary" id="startWithSelectedBtn" onclick="startMatchmakingGameWithSelected()" style="display: none; margin-top: 10px;">
+            Starta spel med valda (<span id="selectedCount">0</span>)
+          </button>
         </div>
         <button class="btn btn-secondary" onclick="leaveMatchmaking()">Avbryt sökning</button>
         
@@ -2349,6 +2383,7 @@
     
     let matchmakingState = null;
     let matchmakingTimer = null;
+    let selectedPlayerIds = new Set();
     
     function findPlayers() {
       const name = document.getElementById('playerName').value.trim();
@@ -2360,6 +2395,7 @@
       if (!socket) connectSocket();
       socket.emit('joinMatchmaking', name);
       showScreen('matchmakingScreen');
+      selectedPlayerIds.clear();
       
       // Starta timer för att uppdatera väntetiden
       matchmakingTimer = setInterval(() => {
@@ -2378,6 +2414,7 @@
         matchmakingTimer = null;
       }
       matchmakingState = null;
+      selectedPlayerIds.clear();
       showScreen('menuScreen');
     }
     
@@ -2391,8 +2428,68 @@
       }
     }
     
+    function startMatchmakingGameWithSelected() {
+      if (socket && selectedPlayerIds.size >= 1) {
+        // Inkludera mig själv + valda spelare
+        const playerIds = Array.from(selectedPlayerIds);
+        socket.emit('startMatchmakingGameWithSelected', playerIds);
+      }
+      if (matchmakingTimer) {
+        clearInterval(matchmakingTimer);
+        matchmakingTimer = null;
+      }
+    }
+    
+    function togglePlayerSelection(playerId, isMe) {
+      if (isMe) return; // Kan inte avmarkera sig själv
+      
+      if (selectedPlayerIds.has(playerId)) {
+        selectedPlayerIds.delete(playerId);
+      } else {
+        // Max 6 andra spelare (7 totalt inkl. mig själv)
+        if (selectedPlayerIds.size < 6) {
+          selectedPlayerIds.add(playerId);
+        }
+      }
+      
+      updateSelectedPlayersUI();
+    }
+    
+    function updateSelectedPlayersUI() {
+      const count = selectedPlayerIds.size + 1; // +1 för mig själv
+      const btn = document.getElementById('startWithSelectedBtn');
+      const countSpan = document.getElementById('selectedCount');
+      
+      countSpan.textContent = count;
+      
+      // Visa knappen om minst 2 valda (mig + 1 annan) och mindre än alla
+      if (selectedPlayerIds.size >= 1 && matchmakingState && count < matchmakingState.queueCount) {
+        btn.style.display = 'block';
+      } else {
+        btn.style.display = 'none';
+      }
+      
+      // Uppdatera rad-styling
+      document.querySelectorAll('#matchmakingTableBody tr').forEach(row => {
+        const playerId = row.dataset.playerId;
+        if (selectedPlayerIds.has(playerId)) {
+          row.classList.add('selected');
+        } else {
+          row.classList.remove('selected');
+        }
+      });
+    }
+    
     function renderMatchmakingState(state) {
       matchmakingState = state; // Spara för timer-uppdatering
+      
+      // Rensa valda spelare som inte längre finns i kön
+      const currentIds = new Set(state.players.map(p => p.id));
+      selectedPlayerIds.forEach(id => {
+        if (!currentIds.has(id)) {
+          selectedPlayerIds.delete(id);
+        }
+      });
       
       // Visa starta-knappen för alla när det finns minst 2 spelare
       const controls = document.getElementById('matchmakingControls');
@@ -2406,6 +2503,8 @@
       const status = document.getElementById('matchmakingStatus');
       if (state.queueCount === 1) {
         status.textContent = 'Väntar på fler spelare...';
+      } else if (state.queueCount > 7) {
+        status.textContent = `${state.queueCount} spelare i kö. Välj vilka du vill spela med!`;
       } else {
         status.textContent = `${state.queueCount} spelare redo! Vem som helst kan starta.`;
       }
@@ -2417,14 +2516,25 @@
       tbody.innerHTML = state.players.map(p => {
         const waitTime = formatWaitTime(now - p.joinedAt);
         const isMe = p.position === state.position;
+        const isSelected = selectedPlayerIds.has(p.id);
+        const rowClass = `${isMe ? 'is-me' : ''} ${isSelected ? 'selected' : ''}`;
+        
         return `
-          <tr class="${isMe ? 'is-me' : ''}">
+          <tr class="${rowClass}" data-player-id="${p.id}">
+            <td class="col-select">
+              <input type="checkbox" 
+                     ${isMe || isSelected ? 'checked' : ''} 
+                     ${isMe ? 'disabled' : ''}
+                     onchange="togglePlayerSelection('${p.id}', ${isMe})">
+            </td>
             <td>${p.position}</td>
             <td>${p.name}${isMe ? ' (du)' : ''}</td>
             <td>${waitTime}</td>
           </tr>
         `;
       }).join('');
+      
+      updateSelectedPlayersUI();
     }
     
     function formatWaitTime(ms) {
