@@ -152,7 +152,8 @@ function getMatchmakingState() {
     id: p.socketId,
     name: p.name,
     isHost: index === 0,
-    position: index + 1
+    position: index + 1,
+    joinedAt: p.joinedAt
   }));
   
   return {
@@ -827,7 +828,8 @@ function emitRoomStateToAll(room) {
         name: p.name,
         cardCount: p.hand.length,
         score: p.score,
-        hand: p.id === player.id ? p.hand : null,
+        // Visa alla händer när rundan är slut, annars bara egna kort
+        hand: (p.id === player.id || room.roundEnded) ? p.hand : null,
         isMe: p.id === player.id,
         isCurrent: index === room.currentPlayerIndex,
         isHost: p.id === room.hostId,
