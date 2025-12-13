@@ -960,14 +960,17 @@ io.on('connection', (socket) => {
       playersToAdd.unshift(starter);
     }
     
-    const hostPlayer = playersToAdd[0];
+    // Begränsa till 7 spelare
+    const limitedPlayers = playersToAdd.slice(0, 7);
+    
+    const hostPlayer = limitedPlayers[0];
     
     // Skapa rum med värden
     const room = await createRoom(hostPlayer.socketId, hostPlayer.name);
     
     // Lägg till övriga spelare
-    for (let i = 1; i < playersToAdd.length && room.players.length < 7; i++) {
-      const player = playersToAdd[i];
+    for (let i = 1; i < limitedPlayers.length; i++) {
+      const player = limitedPlayers[i];
       room.players.push({
         id: player.socketId,
         name: player.name,
@@ -979,19 +982,15 @@ io.on('connection', (socket) => {
     
     await saveRoom(room);
     
-    // Flytta alla spelare till rummet och sätt deras currentRoom
-    for (const player of playersToAdd) {
+    // Flytta valda spelare till rummet, ta bort dem från kön
+    for (const player of limitedPlayers) {
       const playerSocket = io.sockets.sockets.get(player.socketId);
       if (playerSocket) {
-        // Sätt currentRoom för varje spelare via en emit som triggar klientens state
         playerSocket.join(room.code);
         playerSocket.emit('matchmakingGameStarted', { 
           code: room.code,
           playerName: player.name 
         });
-        
-        // Uppdatera socket's data (detta är viktigt för disconnect-hantering)
-        // Vi gör detta genom att emulera att spelaren gick med i rummet
       }
       removeFromMatchmaking(player.socketId);
     }
@@ -1000,6 +999,80 @@ io.on('connection', (socket) => {
     emitRoomState(room);
     
     console.log(`[Matchmaking] Spel startat med ${room.players.length} spelare i rum ${room.code}`);
+  });
+  
+  // Starta matchmaking-spel med valda spelare
+  socket.on('startMatchmakingGameWithSelected', async (selectedIds) => {
+    // Kontrollera att denna spelare är i kön
+    const playerInQueue = matchmakingQueue.find(p => p.socketId === socket.id);
+    if (!playerInQueue) {
+      socket.emit('error', { message: 'Du är inte i matchmaking-kön' });
+      return;
+    }
+    
+    // Hämta valda spelare från kön
+    const selectedPlayers = matchmakingQueue.filter(p => 
+      selectedIds.includes(p.socketId) || p.socketId === socket.id
+    );
+    
+    // Minst 2 spelare krävs
+    if (selectedPlayers.length < 2) {
+      socket.emit('error', { message: 'Minst 2 spelare krävs för att starta' });
+      return;
+    }
+    
+    // Max 7 spelare
+    if (selectedPlayers.length > 7) {
+      socket.emit('error', { message: 'Max 7 spelare tillåtna' });
+      return;
+    }
+    
+    // Flytta den som startade till första plats (blir värd)
+    const starterIndex = selectedPlayers.findIndex(p => p.socketId === socket.id);
+    if (starterIndex > 0) {
+      const starter = selectedPlayers.splice(starterIndex, 1)[0];
+      selectedPlayers.unshift(starter);
+    }
+    
+    const hostPlayer = selectedPlayers[0];
+    
+    // Skapa rum med värden
+    const room = await createRoom(hostPlayer.socketId, hostPlayer.name);
+    
+    // Lägg till övriga spelare
+    for (let i = 1; i < selectedPlayers.length; i++) {
+      const player = selectedPlayers[i];
+      room.players.push({
+        id: player.socketId,
+        name: player.name,
+        hand: [],
+        score: 0,
+        connected: true
+      });
+    }
+    
+    await saveRoom(room);
+    
+    // Flytta valda spelare till rummet, ta bort dem från kön
+    for (const player of selectedPlayers) {
+      const playerSocket = io.sockets.sockets.get(player.socketId);
+      if (playerSocket) {
+        playerSocket.join(room.code);
+        playerSocket.emit('matchmakingGameStarted', { 
+          code: room.code,
+          playerName: player.name 
+        });
+      }
+      removeFromMatchmaking(player.socketId);
+    }
+    
+    // Uppdatera kön för de som blev kvar
+    broadcastMatchmakingState();
+    
+    // Skicka rumstillstånd till alla i det nya rummet
+    emitRoomState(room);
+    
+    console.log(`[Matchmaking] Spel startat med ${room.players.length} valda spelare i rum ${room.code}, ${matchmakingQueue.length} kvar i kö`);
   });
   
   // Bekräfta att spelare gått med i matchmaking-rum (för att sätta currentRoom)
