@@ -542,8 +542,8 @@
     .chat-container {
       background: var(--bg-card);
       border-radius: 16px;
-      width: 90%;
-      max-width: 400px;
+      width: 95%;
+      max-width: 500px;
       max-height: 80vh;
       display: flex;
       flex-direction: column;
@@ -1719,6 +1719,13 @@
       justify-content: center;
       gap: 16px;
       margin-top: 24px;
+    }
+    
+    .footer-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
     }
 
     .quit-btn {
@@ -3015,9 +3022,11 @@
         `;
       } else {
         footer.innerHTML = `
-          <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
-          <div class="credit-link">
-            <a href="https://patrikpistol.com" target="_blank">Skapat av Patrik Pistol</a>
+          <div class="footer-content">
+            <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
+            <div class="credit-link">
+              <a href="https://patrikpistol.com" target="_blank">Skapat av Patrik Pistol</a>
+            </div>
           </div>
         `;
       }
