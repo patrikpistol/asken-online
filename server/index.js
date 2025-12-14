@@ -261,6 +261,16 @@ app.get('/health', async (req, res) => {
   });
 });
 
+// Stats endpoint för klienten
+app.get('/stats', async (req, res) => {
+  const roomCount = await countRooms();
+  const queueCount = matchmakingQueue.length;
+  res.status(200).json({ 
+    rooms: roomCount,
+    queue: queueCount
+  });
+});
+
 // ============================================
 // SPELLOGIK
 // ============================================
