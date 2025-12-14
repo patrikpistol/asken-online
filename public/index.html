@@ -322,12 +322,19 @@
     .credit-link a {
       color: var(--text-dim);
       text-decoration: none;
-      font-size: 0.8rem;
+      font-size: 0.95rem;
       transition: color 0.2s;
     }
     
     .credit-link a:hover {
       color: var(--accent);
+    }
+    
+    .active-rooms {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      margin-top: 12px;
     }
     
     /* Matchmaking */
@@ -498,17 +505,30 @@
       padding: 0 4px;
     }
     
-    .chat-modal {
+    .chat-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
       background: rgba(0, 0, 0, 0.8);
+      z-index: 199;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+    }
+    
+    .chat-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .chat-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       z-index: 200;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.3s, visibility 0.3s;
@@ -1790,6 +1810,7 @@
           <span class="rules-link" style="cursor: default; margin: 0 8px;">•</span>
           <a href="about.html" class="rules-link">Om projektet</a>
         </div>
+        <div class="active-rooms" id="activeRoomsInfo"></div>
         
         <!-- Dela spelet -->
         <div class="share-section">
@@ -1854,7 +1875,7 @@
         </div>
         
         <div class="credit-link">
-          Skapat av <a href="https://patrikpistol.com" target="_blank">Patrik Pistol</a> för <a href="https://pistol.se" target="_blank">Pistol Reklambyrå AB</a>
+          <a href="https://patrikpistol.com" target="_blank">Skapat av Patrik Pistol</a>
         </div>
       </div>
     </div>
@@ -1872,7 +1893,7 @@
         <table class="matchmaking-table" id="matchmakingTable">
           <thead>
             <tr>
-              <th class="col-select"></th>
+              <th class="col-select">Välj</th>
               <th>Plats</th>
               <th>Namn</th>
               <th>Väntat</th>
@@ -1951,6 +1972,10 @@
               </svg>
             </button>
           </div>
+        </div>
+        
+        <div class="credit-link">
+          <a href="https://patrikpistol.com" target="_blank">Skapat av Patrik Pistol</a>
         </div>
       </div>
     </div>
@@ -2038,6 +2063,7 @@
     </div>
     
     <!-- Chat-modal -->
+    <div class="chat-overlay" id="chatOverlay" onclick="closeChat()"></div>
     <div class="chat-modal" id="chatModal">
       <div class="chat-container">
         <div class="chat-header">
@@ -2990,6 +3016,9 @@
       } else {
         footer.innerHTML = `
           <button class="quit-btn" onclick="leaveRoom()">Lämna spel</button>
+          <div class="credit-link">
+            <a href="https://patrikpistol.com" target="_blank">Skapat av Patrik Pistol</a>
+          </div>
         `;
       }
     }
@@ -3360,6 +3389,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       connectSocket();
       
+      // Hämta och visa aktiva rum
+      fetchActiveRooms();
+      
       // Läs URL-parametrar (för inbjudningslänkar)
       const urlParams = new URLSearchParams(window.location.search);
       const inviteName = urlParams.get('namn');
@@ -3387,6 +3419,21 @@
       });
     });
     
+    async function fetchActiveRooms() {
+      try {
+        const response = await fetch('/stats');
+        const data = await response.json();
+        const el = document.getElementById('activeRoomsInfo');
+        if (data.rooms > 0) {
+          el.textContent = `${data.rooms} aktiva rum just nu`;
+        } else {
+          el.textContent = '';
+        }
+      } catch (e) {
+        // Ignorera fel
+      }
+    }
+    
     // ============================================
     // CHAT-FUNKTIONER
     // ============================================
@@ -3399,6 +3446,7 @@
       chatOpen = true;
       unreadCount = 0;
       updateChatBadge();
+      document.getElementById('chatOverlay').classList.add('visible');
       document.getElementById('chatModal').classList.add('visible');
       document.getElementById('chatInput').focus();
       scrollChatToBottom();
@@ -3406,6 +3454,7 @@
     
     function closeChat() {
       chatOpen = false;
+      document.getElementById('chatOverlay').classList.remove('visible');
       document.getElementById('chatModal').classList.remove('visible');
     }
     
