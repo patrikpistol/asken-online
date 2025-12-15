@@ -1,26 +1,40 @@
 {
   "name": "Asken Online",
   "short_name": "Asken",
-  "description": "Spela det klassiska svenska kortspelet Asken online gratis med vänner. Skapat av Patrik Pistol för Pistol Reklambyrå AB.",
+  "description": "Spela det klassiska svenska kortspelet Asken online med vänner.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#1a1a1a",
   "theme_color": "#1a1a1a",
-  "orientation": "portrait",
+  "orientation": "any",
   "lang": "sv",
   "categories": ["games", "entertainment"],
+  "id": "/",
   "icons": [
     {
       "src": "/gfx/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/gfx/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/gfx/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/gfx/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
@@ -31,5 +45,7 @@
       "form_factor": "wide",
       "label": "Asken Online - Spelvy"
     }
-  ]
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

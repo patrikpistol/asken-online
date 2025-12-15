@@ -29,8 +29,14 @@
   
   <!-- Favicons -->
   <link rel="icon" type="image/x-icon" href="/gfx/favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="/gfx/web-app-manifest-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/gfx/web-app-manifest-512x512.png">
   <link rel="apple-touch-icon" href="/gfx/web-app-manifest-192x192.png">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1a1a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Asken">
   
   <!-- Structured Data / JSON-LD -->
   <script type="application/ld+json">
@@ -489,6 +495,13 @@
         (människor och/eller robotar) tävla i realtid via webben.
       </p>
       
+      <h3>Bakgrund</h3>
+      <p>
+        Jag skapade detta spel för att kunna fortsätta spela Asken med min dotter som ska flytta 
+        till Nya Zeeland för att bli Au Pair efter sin studentexamen. Oavsett var i världen vi 
+        befinner oss kan vi nu spela vårt favoritkortspel tillsammans.
+      </p>
+      
       <h3>Huvudfunktioner</h3>
       <div class="feature-list">
         <div class="feature-item">
@@ -516,8 +529,8 @@
           <div class="feature-item-desc">Mobil & desktop</div>
         </div>
         <div class="feature-item">
-          <div class="feature-item-title">Delning</div>
-          <div class="feature-item-desc">Dela till sociala medier</div>
+          <div class="feature-item-title">PWA</div>
+          <div class="feature-item-desc">Installera som app</div>
         </div>
         <div class="feature-item">
           <div class="feature-item-title">Spellägen</div>
@@ -1059,8 +1072,24 @@ services:
         <a href="index.html" class="btn btn-primary">🎮 Spela</a>
         <a href="manual.html" class="btn btn-primary">📖 Spelregler</a>
       </div>
+      <div style="margin-top: 20px; text-align: center;">
+        <a href="https://patrikpistol.com" target="_blank" style="color: #888; text-decoration: none; font-size: 0.95rem;">Skapat av Patrik Pistol</a>
+      </div>
     </div>
 
   </div>
+  
+  <script>
+    // Registrera Service Worker för PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('[PWA] Service Worker registered:', registration.scope);
+        })
+        .catch((error) => {
+          console.log('[PWA] Service Worker registration failed:', error);
+        });
+    }
+  </script>
 </body>
 </html>
