@@ -698,17 +698,17 @@ function formatEventType(event) {
 function formatEventDetails(log) {
   switch (log.event) {
     case 'game_started':
-      return \`Rum \${log.roomCode} • \${log.playerCount} spelare • \${log.mode === 'quick' ? 'Snabbspel' : 'Standard'}\`;
+      return 'Rum ' + log.roomCode + ' • ' + log.playerCount + ' spelare • ' + (log.mode === 'quick' ? 'Snabbspel' : 'Standard');
     case 'game_ended':
-      return \`Rum \${log.roomCode} • Vinnare: \${log.winner || 'Okänd'}\`;
+      return 'Rum ' + log.roomCode + ' • Vinnare: ' + (log.winner || 'Okänd');
     case 'round_ended':
-      return \`Rum \${log.roomCode} • Runda \${log.round} • Vinnare: \${log.winner || 'Okänd'}\`;
+      return 'Rum ' + log.roomCode + ' • Runda ' + log.round + ' • Vinnare: ' + (log.winner || 'Okänd');
     case 'room_created':
-      return \`Rum \${log.roomCode} • Skapad av \${log.playerName}\`;
+      return 'Rum ' + log.roomCode + ' • Skapad av ' + log.playerName;
     case 'player_joined':
-      return \`\${log.playerName} gick med i \${log.roomCode}\`;
+      return log.playerName + ' gick med i ' + log.roomCode;
     case 'player_left':
-      return \`\${log.playerName} lämnade \${log.roomCode}\`;
+      return log.playerName + ' lämnade ' + log.roomCode;
     default:
       return JSON.stringify(log);
   }
