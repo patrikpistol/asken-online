@@ -497,9 +497,7 @@
       
       <h3>Bakgrund</h3>
       <p>
-        Jag skapade detta spel för att kunna fortsätta spela Asken med min dotter som ska flytta 
-        till Nya Zeeland för att bli Au Pair efter sin studentexamen. Oavsett var i världen vi 
-        befinner oss kan vi nu spela vårt favoritkortspel tillsammans.
+        Jag skapade detta spel för att kunna fortsätta spela Asken med min dotter som ska flytta till Australien eller Nya Zeeland för att bli Au Pair efter sin studentexamen (Det är planen i alla fall). Oavsett var i världen vi         befinner oss kan vi nu spela vårt favoritkortspel tillsammans.
       </p>
       
       <h3>Huvudfunktioner</h3>
@@ -536,6 +534,10 @@
           <div class="feature-item-title">Spellägen</div>
           <div class="feature-item-desc">Snabb & Standard</div>
         </div>
+        <div class="feature-item">
+          <div class="feature-item-title">Hjälpfunktioner</div>
+          <div class="feature-item-desc">Visuel guidning</div>
+        </div>
       </div>
     </div>
 
@@ -545,32 +547,27 @@
       
       <div class="tech-grid">
         <div class="tech-item">
-          <div class="tech-item-icon">🟢</div>
+
           <div class="tech-item-name">Node.js</div>
           <div class="tech-item-desc">Runtime</div>
         </div>
         <div class="tech-item">
-          <div class="tech-item-icon">⚡</div>
           <div class="tech-item-name">Express</div>
           <div class="tech-item-desc">Webbserver</div>
         </div>
         <div class="tech-item">
-          <div class="tech-item-icon">🔌</div>
           <div class="tech-item-name">Socket.io</div>
           <div class="tech-item-desc">Websockets</div>
         </div>
         <div class="tech-item">
-          <div class="tech-item-icon">🔴</div>
           <div class="tech-item-name">Redis</div>
           <div class="tech-item-desc">Datalagring</div>
         </div>
         <div class="tech-item">
-          <div class="tech-item-icon">🎨</div>
           <div class="tech-item-name">CSS3</div>
           <div class="tech-item-desc">Styling</div>
         </div>
         <div class="tech-item">
-          <div class="tech-item-icon">📜</div>
           <div class="tech-item-name">Vanilla JS</div>
           <div class="tech-item-desc">Klientlogik</div>
         </div>
@@ -647,18 +644,23 @@
         </tr>
         <tr>
           <td><code>server/index.js</code></td>
-          <td>~1300 rader</td>
+          <td>~2400 rader</td>
           <td>Express-server, Socket.io-handlers, spellogik, robot-AI</td>
         </tr>
         <tr>
           <td><code>public/index.html</code></td>
-          <td>~2200 rader</td>
+          <td>~3600 rader</td>
           <td>All klientkod: HTML, CSS och JavaScript i en fil</td>
         </tr>
         <tr>
           <td><code>public/manual.html</code></td>
-          <td>~500 rader</td>
+          <td>~700 rader</td>
           <td>Spelregler och instruktioner</td>
+        </tr>
+        <tr>
+          <td><code>public/about.html</code></td>
+          <td>~1100 rader</td>
+          <td>Teknisk information</td>
         </tr>
       </table>
     </div>
@@ -1061,7 +1063,7 @@ services:
         <div class="info-box-title">🔗 Länkar</div>
         <ul style="margin-bottom: 0;">
           <li>Live: <a href="https://asken.pistol.se" style="color: var(--accent);">asken.pistol.se</a></li>
-          <li>GitHub: <a href="https://github.com/PatrikPat/asken-online" style="color: var(--accent);">github.com/PatrikPat/asken-online</a></li>
+          <li>Kontakt: <a href="https://patrikpistol.com" target="_blank" style="color: var(--accent);">patrikpistol.com</a></li>
         </ul>
       </div>
     </div>
@@ -1069,8 +1071,8 @@ services:
     <!-- Footer med knappar -->
     <div class="card">
       <div class="btn-row">
-        <a href="index.html" class="btn btn-primary">🎮 Spela</a>
-        <a href="manual.html" class="btn btn-primary">📖 Spelregler</a>
+        <a href="index.html" class="btn btn-primary">Spela</a>
+        <a href="manual.html" class="btn btn-primary">Spelregler</a>
       </div>
       <div style="margin-top: 20px; text-align: center;">
         <a href="https://patrikpistol.com" target="_blank" style="color: #888; text-decoration: none; font-size: 0.95rem;">Skapat av Patrik Pistol</a>
