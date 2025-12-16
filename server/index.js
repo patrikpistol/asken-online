@@ -247,8 +247,230 @@ async function countRooms() {
   return roomsCache.size;
 }
 
+async function getAllRooms() {
+  const rooms = [];
+  if (redis) {
+    try {
+      const keys = await redis.keys('room:*');
+      for (const key of keys) {
+        const data = await redis.get(key);
+        if (data) {
+          rooms.push(JSON.parse(data));
+        }
+      }
+    } catch (err) {
+      // Fallback till cache
+      for (const room of roomsCache.values()) {
+        rooms.push(room);
+      }
+    }
+  } else {
+    for (const room of roomsCache.values()) {
+      rooms.push(room);
+    }
+  }
+  return rooms;
+}
+
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Hemlig admin-nyckel (sätt som miljövariabel i Render)
+const ADMIN_KEY = process.env.ADMIN_KEY || 'asken-secret-2024';
+
+// Hemlig admin-endpoint
+app.get('/admin/:key', async (req, res) => {
+  if (req.params.key !== ADMIN_KEY) {
+    return res.status(404).send('Not found');
+  }
+  
+  const rooms = await getAllRooms();
+  const now = Date.now();
+  
+  // Formatera data för visning
+  const roomData = rooms.map(room => ({
+    code: room.code,
+    state: room.state,
+    mode: room.mode || 'standard',
+    roundNumber: room.roundNumber || 0,
+    created: room.createdAt ? new Date(room.createdAt).toLocaleString('sv-SE') : 'Okänt',
+    lastActivity: room.lastActivity ? Math.floor((now - room.lastActivity) / 60000) + ' min sedan' : 'Okänt',
+    players: room.players.map(p => ({
+      name: p.name,
+      isBot: p.isBot || false,
+      connected: p.connected,
+      score: p.score || 0,
+      cards: p.hand ? p.hand.length : 0
+    }))
+  }));
+  
+  // Matchmaking-kö
+  const queueData = matchmakingQueue.map(p => ({
+    name: p.name,
+    waiting: Math.floor((now - p.joinedAt) / 1000) + 's'
+  }));
+  
+  // Generera HTML
+  const html = `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asken Admin</title>
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: system-ui, sans-serif; 
+      background: #1a1a1a; 
+      color: #f0f0f0; 
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 { color: #c69e60; margin-bottom: 20px; }
+    h2 { color: #c69e60; margin: 30px 0 15px; font-size: 1.2rem; }
+    .stats { 
+      display: flex; 
+      gap: 20px; 
+      margin-bottom: 30px; 
+      flex-wrap: wrap;
+    }
+    .stat { 
+      background: #2a2a2a; 
+      padding: 20px; 
+      border-radius: 10px; 
+      min-width: 150px;
+    }
+    .stat-value { font-size: 2rem; color: #c69e60; font-weight: bold; }
+    .stat-label { color: #888; font-size: 0.9rem; }
+    .room { 
+      background: #2a2a2a; 
+      border-radius: 10px; 
+      padding: 20px; 
+      margin-bottom: 15px;
+    }
+    .room-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .room-code { 
+      font-size: 1.5rem; 
+      font-weight: bold; 
+      color: #c69e60;
+      font-family: monospace;
+    }
+    .room-state { 
+      padding: 4px 12px; 
+      border-radius: 20px; 
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .state-lobby { background: #3d5a80; }
+    .state-playing { background: #4caf50; }
+    .room-meta { color: #888; font-size: 0.85rem; margin-bottom: 10px; }
+    .players { display: flex; flex-wrap: wrap; gap: 10px; }
+    .player { 
+      background: #1a1a1a; 
+      padding: 8px 12px; 
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .player.bot { opacity: 0.6; }
+    .player.disconnected { opacity: 0.4; text-decoration: line-through; }
+    .player-name { font-weight: 600; }
+    .player-info { color: #888; font-size: 0.8rem; }
+    .queue { 
+      background: #2a2a2a; 
+      border-radius: 10px; 
+      padding: 20px;
+    }
+    .queue-player { 
+      display: inline-block;
+      background: #1a1a1a; 
+      padding: 8px 12px; 
+      border-radius: 6px;
+      margin: 5px;
+    }
+    .empty { color: #666; font-style: italic; }
+    .refresh { 
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #c69e60;
+      color: #1a1a1a;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .refresh:hover { background: #b08a50; }
+  </style>
+</head>
+<body>
+  <h1>🎴 Asken Admin</h1>
+  
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">${roomData.length}</div>
+      <div class="stat-label">Aktiva rum</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${roomData.reduce((sum, r) => sum + r.players.filter(p => !p.isBot).length, 0)}</div>
+      <div class="stat-label">Mänskliga spelare</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${roomData.filter(r => r.state === 'playing').length}</div>
+      <div class="stat-label">Pågående spel</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${queueData.length}</div>
+      <div class="stat-label">I matchmaking-kö</div>
+    </div>
+  </div>
+  
+  <h2>📋 Matchmaking-kö</h2>
+  <div class="queue">
+    ${queueData.length === 0 ? '<span class="empty">Ingen i kön</span>' : 
+      queueData.map(p => `<span class="queue-player">${p.name} <small>(${p.waiting})</small></span>`).join('')}
+  </div>
+  
+  <h2>🚪 Aktiva rum</h2>
+  ${roomData.length === 0 ? '<p class="empty">Inga aktiva rum</p>' : 
+    roomData.map(room => `
+      <div class="room">
+        <div class="room-header">
+          <span class="room-code">${room.code}</span>
+          <span class="room-state state-${room.state}">${room.state === 'playing' ? '🎮 Spelar' : '⏳ Lobby'}</span>
+        </div>
+        <div class="room-meta">
+          ${room.mode === 'quick' ? 'Snabbspel' : 'Standard'} • 
+          Runda ${room.roundNumber} • 
+          Senast aktiv: ${room.lastActivity}
+        </div>
+        <div class="players">
+          ${room.players.map(p => `
+            <div class="player ${p.isBot ? 'bot' : ''} ${!p.connected ? 'disconnected' : ''}">
+              <span class="player-name">${p.isBot ? '🤖 ' : ''}${p.name}</span>
+              <span class="player-info">${p.score}p • ${p.cards} kort</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('')}
+  
+  <button class="refresh" onclick="location.reload()">🔄 Uppdatera</button>
+</body>
+</html>
+  `;
+  
+  res.send(html);
+});
 
 // Keepalive endpoint
 app.get('/health', async (req, res) => {
