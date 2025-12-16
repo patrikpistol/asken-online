@@ -698,7 +698,15 @@ function formatEventType(event) {
 function formatEventDetails(log) {
   switch (log.event) {
     case 'game_started':
-      return 'Rum ' + log.roomCode + ' • ' + log.playerCount + ' spelare • ' + (log.mode === 'quick' ? 'Snabbspel' : 'Standard');
+      var players = '';
+      if (log.humans && log.humans.length > 0) {
+        players += '👤 ' + log.humans.join(', ');
+      }
+      if (log.bots && log.bots.length > 0) {
+        if (players) players += ' • ';
+        players += '🤖 ' + log.bots.join(', ');
+      }
+      return 'Rum ' + log.roomCode + ' • ' + (log.mode === 'quick' ? 'Snabbspel' : 'Standard') + (players ? ' • ' + players : '');
     case 'game_ended':
       return 'Rum ' + log.roomCode + ' • Vinnare: ' + (log.winner || 'Okänd');
     case 'round_ended':
@@ -1868,10 +1876,14 @@ io.on('connection', (socket) => {
     await saveRoom(room);
     
     // Logga händelse
+    const humans = room.players.filter(p => !p.isBot).map(p => p.name);
+    const bots = room.players.filter(p => p.isBot).map(p => p.name);
     logStats('game_started', { 
       roomCode: room.code, 
       playerCount: room.players.length,
-      humanCount: room.players.filter(p => !p.isBot).length,
+      humanCount: humans.length,
+      humans: humans,
+      bots: bots,
       mode: room.mode
     });
     
