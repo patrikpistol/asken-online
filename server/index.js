@@ -45,7 +45,7 @@ const BOT_NAMES = [
   'Kirsh',
   'Anna',
   'R2-D2',
-  'HAL 9000',
+  'HAL-9000',
   'Mathilda',
   'C-3PO',
   'Ash 120-A/2',
@@ -77,6 +77,9 @@ const BOT_NAMES = [
   'GLaDOS',
   'Megatron',
   'Optimus Prime'
+  'Maria'
+  'SAL-9000'
+  'Twiki' 
 ];
 
 function getRandomBotName(existingNames) {
