@@ -414,6 +414,9 @@ app.get('/admin/:key', async (req, res) => {
 </head>
 <body>
   <h1>🎴 Asken Admin</h1>
+  <div class="nav" style="margin-bottom: 20px;">
+    <a href="/admin/${ADMIN_KEY}/history" style="color: #c69e60;">📊 Visa historik →</a>
+  </div>
   
   <div class="stats">
     <div class="stat">
@@ -471,6 +474,245 @@ app.get('/admin/:key', async (req, res) => {
   
   res.send(html);
 });
+
+// Statistik-loggning
+const statsLog = []; // In-memory för snabb åtkomst
+const MAX_STATS_LOG = 1000; // Behåll senaste 1000 entries
+
+async function logStats(event, data = {}) {
+  const entry = {
+    timestamp: Date.now(),
+    event,
+    ...data
+  };
+  
+  statsLog.push(entry);
+  
+  // Begränsa storlek
+  if (statsLog.length > MAX_STATS_LOG) {
+    statsLog.shift();
+  }
+  
+  // Spara även till Redis för persistens
+  if (redis) {
+    try {
+      await redis.lpush('stats:log', JSON.stringify(entry));
+      await redis.ltrim('stats:log', 0, MAX_STATS_LOG - 1);
+    } catch (err) {
+      // Ignorera Redis-fel
+    }
+  }
+}
+
+async function getStatsLog() {
+  // Försök hämta från Redis först
+  if (redis) {
+    try {
+      const logs = await redis.lrange('stats:log', 0, MAX_STATS_LOG - 1);
+      if (logs && logs.length > 0) {
+        return logs.map(l => JSON.parse(l));
+      }
+    } catch (err) {
+      // Fallback till in-memory
+    }
+  }
+  return statsLog;
+}
+
+// Historik-endpoint
+app.get('/admin/:key/history', async (req, res) => {
+  if (req.params.key !== ADMIN_KEY) {
+    return res.status(404).send('Not found');
+  }
+  
+  const logs = await getStatsLog();
+  const now = Date.now();
+  
+  // Gruppera per timme för graf
+  const hourlyStats = {};
+  const last24h = now - (24 * 60 * 60 * 1000);
+  
+  logs.filter(l => l.timestamp > last24h).forEach(log => {
+    const hour = new Date(log.timestamp).toISOString().slice(0, 13);
+    if (!hourlyStats[hour]) {
+      hourlyStats[hour] = { games: 0, players: new Set(), rounds: 0 };
+    }
+    if (log.event === 'game_started') hourlyStats[hour].games++;
+    if (log.event === 'round_ended') hourlyStats[hour].rounds++;
+    if (log.playerName) hourlyStats[hour].players.add(log.playerName);
+  });
+  
+  // Formatera för visning
+  const recentEvents = logs.slice(-100).reverse().map(log => ({
+    time: new Date(log.timestamp).toLocaleString('sv-SE'),
+    event: log.event,
+    details: formatEventDetails(log)
+  }));
+  
+  // Sammanfattning
+  const last24hLogs = logs.filter(l => l.timestamp > last24h);
+  const summary = {
+    gamesStarted: last24hLogs.filter(l => l.event === 'game_started').length,
+    roundsPlayed: last24hLogs.filter(l => l.event === 'round_ended').length,
+    uniquePlayers: new Set(last24hLogs.filter(l => l.playerName).map(l => l.playerName)).size,
+    roomsCreated: last24hLogs.filter(l => l.event === 'room_created').length
+  };
+  
+  const html = `
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asken Historik</title>
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: system-ui, sans-serif; 
+      background: #1a1a1a; 
+      color: #f0f0f0; 
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 { color: #c69e60; margin-bottom: 10px; }
+    h2 { color: #c69e60; margin: 30px 0 15px; font-size: 1.2rem; }
+    .nav { margin-bottom: 20px; }
+    .nav a { color: #c69e60; margin-right: 20px; }
+    .stats { 
+      display: flex; 
+      gap: 20px; 
+      margin-bottom: 30px; 
+      flex-wrap: wrap;
+    }
+    .stat { 
+      background: #2a2a2a; 
+      padding: 20px; 
+      border-radius: 10px; 
+      min-width: 150px;
+    }
+    .stat-value { font-size: 2rem; color: #c69e60; font-weight: bold; }
+    .stat-label { color: #888; font-size: 0.9rem; }
+    .events {
+      background: #2a2a2a;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .event {
+      padding: 12px 16px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .event:last-child { border-bottom: none; }
+    .event-time { color: #888; font-size: 0.85rem; min-width: 140px; }
+    .event-type { 
+      padding: 2px 8px; 
+      border-radius: 4px; 
+      font-size: 0.75rem;
+      font-weight: 600;
+      min-width: 100px;
+      text-align: center;
+    }
+    .event-game_started { background: #4caf50; }
+    .event-game_ended { background: #f44336; }
+    .event-round_ended { background: #2196f3; }
+    .event-room_created { background: #9c27b0; }
+    .event-player_joined { background: #ff9800; }
+    .event-player_left { background: #795548; }
+    .event-details { color: #ccc; flex: 1; }
+    .refresh { 
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #c69e60;
+      color: #1a1a1a;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .empty { color: #666; font-style: italic; padding: 20px; }
+  </style>
+</head>
+<body>
+  <h1>📊 Asken Historik</h1>
+  <div class="nav">
+    <a href="/admin/${ADMIN_KEY}">← Tillbaka till översikt</a>
+  </div>
+  
+  <h2>Senaste 24 timmarna</h2>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">${summary.gamesStarted}</div>
+      <div class="stat-label">Spel startade</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${summary.roundsPlayed}</div>
+      <div class="stat-label">Rundor spelade</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${summary.uniquePlayers}</div>
+      <div class="stat-label">Unika spelare</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${summary.roomsCreated}</div>
+      <div class="stat-label">Rum skapade</div>
+    </div>
+  </div>
+  
+  <h2>Senaste händelserna</h2>
+  <div class="events">
+    ${recentEvents.length === 0 ? '<p class="empty">Inga händelser loggade än</p>' :
+      recentEvents.map(e => `
+        <div class="event">
+          <span class="event-time">${e.time}</span>
+          <span class="event-type event-${e.event}">${formatEventType(e.event)}</span>
+          <span class="event-details">${e.details}</span>
+        </div>
+      `).join('')}
+  </div>
+  
+  <button class="refresh" onclick="location.reload()">🔄 Uppdatera</button>
+</body>
+</html>
+  `;
+  
+  res.send(html);
+});
+
+function formatEventType(event) {
+  const types = {
+    'game_started': 'Spel startat',
+    'game_ended': 'Spel avslutat',
+    'round_ended': 'Runda klar',
+    'room_created': 'Rum skapat',
+    'player_joined': 'Spelare gick med',
+    'player_left': 'Spelare lämnade'
+  };
+  return types[event] || event;
+}
+
+function formatEventDetails(log) {
+  switch (log.event) {
+    case 'game_started':
+      return \`Rum \${log.roomCode} • \${log.playerCount} spelare • \${log.mode === 'quick' ? 'Snabbspel' : 'Standard'}\`;
+    case 'game_ended':
+      return \`Rum \${log.roomCode} • Vinnare: \${log.winner || 'Okänd'}\`;
+    case 'round_ended':
+      return \`Rum \${log.roomCode} • Runda \${log.round} • Vinnare: \${log.winner || 'Okänd'}\`;
+    case 'room_created':
+      return \`Rum \${log.roomCode} • Skapad av \${log.playerName}\`;
+    case 'player_joined':
+      return \`\${log.playerName} gick med i \${log.roomCode}\`;
+    case 'player_left':
+      return \`\${log.playerName} lämnade \${log.roomCode}\`;
+    default:
+      return JSON.stringify(log);
+  }
+}
 
 // Keepalive endpoint
 app.get('/health', async (req, res) => {
@@ -1021,6 +1263,25 @@ function endRoundForRoom(room) {
     .map(rs => rs.playerId);
   room.roundWinners = room.players.filter(p => roundWinnerIds.includes(p.id));
   
+  // Logga händelse
+  const winnerNames = room.roundWinners.map(w => w.name).join(', ');
+  logStats('round_ended', { 
+    roomCode: room.code, 
+    round: room.roundNumber,
+    winner: winnerNames
+  });
+  
+  // Kolla om spelet är slut
+  const isGameOver = room.mode === 'quick' || room.players.some(p => p.score >= 500);
+  if (isGameOver) {
+    const gameWinner = room.players.reduce((a, b) => a.score < b.score ? a : b);
+    logStats('game_ended', {
+      roomCode: room.code,
+      winner: gameWinner.name,
+      rounds: room.roundNumber
+    });
+  }
+  
   room.state = 'roundEnd';
 }
 
@@ -1332,6 +1593,9 @@ io.on('connection', (socket) => {
     currentRoom = room.code;
     socket.join(room.code);
     
+    // Logga händelse
+    logStats('room_created', { roomCode: room.code, playerName: name });
+    
     socket.emit('roomCreated', { code: room.code });
     emitRoomState(room);
   });
@@ -1373,6 +1637,9 @@ io.on('connection', (socket) => {
     
     room.lastActivity = Date.now();
     await saveRoom(room);
+    
+    // Logga händelse
+    logStats('player_joined', { roomCode: room.code, playerName: name });
     
     socket.join(room.code);
     socket.emit('roomJoined', { code: room.code });
@@ -1599,6 +1866,14 @@ io.on('connection', (socket) => {
     
     room.lastActivity = Date.now();
     await saveRoom(room);
+    
+    // Logga händelse
+    logStats('game_started', { 
+      roomCode: room.code, 
+      playerCount: room.players.length,
+      humanCount: room.players.filter(p => !p.isBot).length,
+      mode: room.mode
+    });
     
     emitRoomStateToAll(room);
     
