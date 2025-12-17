@@ -819,6 +819,14 @@ app.get('/admin/:key/history', async (req, res) => {
       `).join('')}
   </div>
   
+  <h2>Unika spelare (${allPlayers.size})</h2>
+  <div class="players-list" style="background: #2a2a2a; border-radius: 10px; padding: 20px; display: flex; flex-wrap: wrap; gap: 8px;">
+    ${allPlayers.size === 0 ? '<span class="empty">Inga spelare än</span>' :
+      Array.from(allPlayers).sort().map(name => 
+        '<span style="background: #1a1a1a; padding: 6px 12px; border-radius: 6px;">👤 ' + name + '</span>'
+      ).join('')}
+  </div>
+  
   <button class="refresh" onclick="location.reload()">🔄 Uppdatera</button>
 </body>
 </html>
