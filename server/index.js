@@ -79,7 +79,7 @@ const BOT_NAMES = [
   'Optimus Prime',
   'Maria',
   'SAL-9000',
-  'Twiki' 
+  'Twiki'
 ];
 
 function getRandomBotName(existingNames) {
@@ -313,6 +313,24 @@ app.get('/admin/:key', async (req, res) => {
     waiting: Math.floor((now - p.joinedAt) / 1000) + 's'
   }));
   
+  // Beräkna extra statistik
+  const totalHumans = roomData.reduce((sum, r) => sum + r.players.filter(p => !p.isBot).length, 0);
+  const totalBots = roomData.reduce((sum, r) => sum + r.players.filter(p => p.isBot).length, 0);
+  const playingRooms = roomData.filter(r => r.state === 'playing').length;
+  const lobbyRooms = roomData.filter(r => r.state === 'lobby').length;
+  const connectedSockets = io.sockets.sockets.size;
+  const avgPlayersPerRoom = roomData.length > 0 ? (totalHumans / roomData.length).toFixed(1) : 0;
+  const longestWait = queueData.length > 0 ? queueData[0].waiting : '-';
+  
+  // Server-info
+  const uptimeSeconds = process.uptime();
+  const uptimeStr = uptimeSeconds > 86400 
+    ? Math.floor(uptimeSeconds / 86400) + 'd ' + Math.floor((uptimeSeconds % 86400) / 3600) + 'h'
+    : uptimeSeconds > 3600 
+      ? Math.floor(uptimeSeconds / 3600) + 'h ' + Math.floor((uptimeSeconds % 3600) / 60) + 'm'
+      : Math.floor(uptimeSeconds / 60) + 'm';
+  const memUsage = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+  
   // Generera HTML
   const html = `
 <!DOCTYPE html>
@@ -322,6 +340,7 @@ app.get('/admin/:key', async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Asken Admin</title>
   <meta name="robots" content="noindex, nofollow">
+  <meta http-equiv="refresh" content="30">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -335,18 +354,40 @@ app.get('/admin/:key', async (req, res) => {
     h2 { color: #c69e60; margin: 30px 0 15px; font-size: 1.2rem; }
     .stats { 
       display: flex; 
-      gap: 20px; 
-      margin-bottom: 30px; 
+      gap: 15px; 
+      margin-bottom: 20px; 
       flex-wrap: wrap;
     }
     .stat { 
       background: #2a2a2a; 
-      padding: 20px; 
+      padding: 16px 20px; 
       border-radius: 10px; 
-      min-width: 150px;
+      min-width: 120px;
     }
-    .stat-value { font-size: 2rem; color: #c69e60; font-weight: bold; }
-    .stat-label { color: #888; font-size: 0.9rem; }
+    .stat-value { font-size: 1.8rem; color: #c69e60; font-weight: bold; }
+    .stat-label { color: #888; font-size: 0.85rem; }
+    .stat-small { 
+      background: #252525; 
+      padding: 12px 16px; 
+      border-radius: 8px; 
+      min-width: 100px;
+    }
+    .stat-small .stat-value { font-size: 1.3rem; }
+    .stat-small .stat-label { font-size: 0.75rem; }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 30px 0 15px;
+    }
+    .section-header h2 { margin: 0; }
+    .section-count {
+      background: #3a3a3a;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      color: #c69e60;
+    }
     .room { 
       background: #2a2a2a; 
       border-radius: 10px; 
@@ -375,6 +416,7 @@ app.get('/admin/:key', async (req, res) => {
     }
     .state-lobby { background: #3d5a80; }
     .state-playing { background: #4caf50; }
+    .state-roundEnd { background: #ff9800; }
     .room-meta { color: #888; font-size: 0.85rem; margin-bottom: 10px; }
     .players { display: flex; flex-wrap: wrap; gap: 10px; }
     .player { 
@@ -385,6 +427,7 @@ app.get('/admin/:key', async (req, res) => {
     }
     .player.bot { opacity: 0.6; }
     .player.disconnected { opacity: 0.4; text-decoration: line-through; }
+    .player.current { border: 2px solid #c69e60; }
     .player-name { font-weight: 600; }
     .player-info { color: #888; font-size: 0.8rem; }
     .queue { 
@@ -400,6 +443,22 @@ app.get('/admin/:key', async (req, res) => {
       margin: 5px;
     }
     .empty { color: #666; font-style: italic; }
+    .server-info {
+      background: #252525;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+    }
+    .server-info-item {
+      display: flex;
+      gap: 8px;
+    }
+    .server-info-label { color: #888; }
+    .server-info-value { color: #c69e60; font-weight: 500; }
     .refresh { 
       position: fixed;
       bottom: 20px;
@@ -413,10 +472,41 @@ app.get('/admin/:key', async (req, res) => {
       font-weight: 600;
     }
     .refresh:hover { background: #b08a50; }
+    .auto-refresh-note {
+      position: fixed;
+      bottom: 25px;
+      right: 140px;
+      color: #666;
+      font-size: 0.75rem;
+    }
   </style>
 </head>
 <body>
   <h1>🎴 Asken Admin</h1>
+  
+  <div class="server-info">
+    <div class="server-info-item">
+      <span class="server-info-label">Uptime:</span>
+      <span class="server-info-value">${uptimeStr}</span>
+    </div>
+    <div class="server-info-item">
+      <span class="server-info-label">Minne:</span>
+      <span class="server-info-value">${memUsage} MB</span>
+    </div>
+    <div class="server-info-item">
+      <span class="server-info-label">Sockets:</span>
+      <span class="server-info-value">${connectedSockets}</span>
+    </div>
+    <div class="server-info-item">
+      <span class="server-info-label">Redis:</span>
+      <span class="server-info-value">${redis ? '✅ Ansluten' : '❌ Ej ansluten'}</span>
+    </div>
+    <div class="server-info-item">
+      <span class="server-info-label">Tid:</span>
+      <span class="server-info-value">${new Date().toLocaleString('sv-SE')}</span>
+    </div>
+  </div>
+  
   <div class="nav" style="margin-bottom: 20px;">
     <a href="/admin/${ADMIN_KEY}/history" style="color: #c69e60;">📊 Visa historik →</a>
   </div>
@@ -427,49 +517,80 @@ app.get('/admin/:key', async (req, res) => {
       <div class="stat-label">Aktiva rum</div>
     </div>
     <div class="stat">
-      <div class="stat-value">${roomData.reduce((sum, r) => sum + r.players.filter(p => !p.isBot).length, 0)}</div>
-      <div class="stat-label">Mänskliga spelare</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">${roomData.filter(r => r.state === 'playing').length}</div>
-      <div class="stat-label">Pågående spel</div>
+      <div class="stat-value">${totalHumans}</div>
+      <div class="stat-label">Människor i spel</div>
     </div>
     <div class="stat">
       <div class="stat-value">${queueData.length}</div>
       <div class="stat-label">I matchmaking-kö</div>
     </div>
+    <div class="stat">
+      <div class="stat-value">${totalHumans + queueData.length}</div>
+      <div class="stat-label">Totalt online</div>
+    </div>
   </div>
   
-  <h2>📋 Matchmaking-kö</h2>
+  <div class="stats">
+    <div class="stat-small">
+      <div class="stat-value">${playingRooms}</div>
+      <div class="stat-label">Spelar</div>
+    </div>
+    <div class="stat-small">
+      <div class="stat-value">${lobbyRooms}</div>
+      <div class="stat-label">I lobby</div>
+    </div>
+    <div class="stat-small">
+      <div class="stat-value">${totalBots}</div>
+      <div class="stat-label">Robotar</div>
+    </div>
+    <div class="stat-small">
+      <div class="stat-value">${avgPlayersPerRoom}</div>
+      <div class="stat-label">Snitt/rum</div>
+    </div>
+    <div class="stat-small">
+      <div class="stat-value">${longestWait}</div>
+      <div class="stat-label">Längst väntan</div>
+    </div>
+  </div>
+  
+  <div class="section-header">
+    <h2>📋 Matchmaking-kö</h2>
+    <span class="section-count">${queueData.length} spelare</span>
+  </div>
   <div class="queue">
     ${queueData.length === 0 ? '<span class="empty">Ingen i kön</span>' : 
       queueData.map(p => `<span class="queue-player">${p.name} <small>(${p.waiting})</small></span>`).join('')}
   </div>
   
-  <h2>🚪 Aktiva rum</h2>
+  <div class="section-header">
+    <h2>🚪 Aktiva rum</h2>
+    <span class="section-count">${roomData.length} rum</span>
+  </div>
   ${roomData.length === 0 ? '<p class="empty">Inga aktiva rum</p>' : 
     roomData.map(room => `
       <div class="room">
         <div class="room-header">
           <span class="room-code">${room.code}</span>
-          <span class="room-state state-${room.state}">${room.state === 'playing' ? '🎮 Spelar' : '⏳ Lobby'}</span>
+          <span class="room-state state-${room.state}">${room.state === 'playing' ? '🎮 Spelar' : room.state === 'roundEnd' ? '🏁 Rundslut' : '⏳ Lobby'}</span>
         </div>
         <div class="room-meta">
-          ${room.mode === 'quick' ? 'Snabbspel' : 'Standard'} • 
+          ${room.mode === 'quick' ? '⚡ Snabbspel' : '📊 Standard'} • 
           Runda ${room.roundNumber} • 
-          Senast aktiv: ${room.lastActivity}
+          Skapad: ${room.created} •
+          Aktiv: ${room.lastActivity}
         </div>
         <div class="players">
-          ${room.players.map(p => `
+          ${room.players.map((p, i) => `
             <div class="player ${p.isBot ? 'bot' : ''} ${!p.connected ? 'disconnected' : ''}">
-              <span class="player-name">${p.isBot ? '🤖 ' : ''}${p.name}</span>
-              <span class="player-info">${p.score}p • ${p.cards} kort</span>
+              <span class="player-name">${p.isBot ? '🤖 ' : '👤 '}${p.name}</span>
+              <span class="player-info">${p.score}p • ${p.cards} kort${!p.connected ? ' • ❌' : ''}</span>
             </div>
           `).join('')}
         </div>
       </div>
     `).join('')}
   
+  <span class="auto-refresh-note">Auto-uppdatering: 30s</span>
   <button class="refresh" onclick="location.reload()">🔄 Uppdatera</button>
 </body>
 </html>
