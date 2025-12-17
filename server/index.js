@@ -79,7 +79,17 @@ const BOT_NAMES = [
   'Optimus Prime',
   'Maria',
   'SAL-9000',
-  'Twiki'
+  'Twiki',
+  'Mimus',
+  'Maskinen',
+  'Plåtniklas',
+  'Atari ST',
+  'Amiga',
+  'ZX Spectrum',
+  'Commodore 64',
+  'PC',
+  'Macintosh',
+  'VIC-20'
 ];
 
 function getRandomBotName(existingNames) {
@@ -675,10 +685,20 @@ app.get('/admin/:key/history', async (req, res) => {
   
   // Sammanfattning
   const last24hLogs = logs.filter(l => l.timestamp > last24h);
+  
+  // Samla alla unika spelare (från playerName OCH humans-arrayen)
+  const allPlayers = new Set();
+  last24hLogs.forEach(l => {
+    if (l.playerName) allPlayers.add(l.playerName);
+    if (l.humans && Array.isArray(l.humans)) {
+      l.humans.forEach(name => allPlayers.add(name));
+    }
+  });
+  
   const summary = {
     gamesStarted: last24hLogs.filter(l => l.event === 'game_started').length,
     roundsPlayed: last24hLogs.filter(l => l.event === 'round_ended').length,
-    uniquePlayers: new Set(last24hLogs.filter(l => l.playerName).map(l => l.playerName)).size,
+    uniquePlayers: allPlayers.size,
     roomsCreated: last24hLogs.filter(l => l.event === 'room_created').length
   };
   
