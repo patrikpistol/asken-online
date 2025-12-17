@@ -860,9 +860,11 @@ function formatEventDetails(log) {
       }
       return 'Rum ' + log.roomCode + ' • ' + (log.mode === 'quick' ? 'Snabbspel' : 'Standard') + (players ? ' • ' + players : '');
     case 'game_ended':
-      return 'Rum ' + log.roomCode + ' • Vinnare: ' + (log.winner || 'Okänd');
+      var modeText = log.mode === 'quick' ? 'Snabbspel' : 'Standard';
+      var scoreText = log.winnerScore ? ' (' + log.winnerScore + 'p)' : '';
+      return 'Rum ' + log.roomCode + ' • ' + modeText + ' • 🏆 ' + (log.winner || 'Okänd') + scoreText + ' • ' + log.rounds + ' runda(r)';
     case 'round_ended':
-      return 'Rum ' + log.roomCode + ' • Runda ' + log.round + ' • Vinnare: ' + (log.winner || 'Okänd');
+      return 'Rum ' + log.roomCode + ' • Runda ' + log.round + ' • 🏆 ' + (log.winner || 'Okänd');
     case 'room_created':
       return 'Rum ' + log.roomCode + ' • Skapad av ' + log.playerName;
     case 'player_joined':
@@ -1438,7 +1440,9 @@ function endRoundForRoom(room) {
     logStats('game_ended', {
       roomCode: room.code,
       winner: gameWinner.name,
-      rounds: room.roundNumber
+      winnerScore: gameWinner.score,
+      rounds: room.roundNumber,
+      mode: room.mode
     });
   }
   
@@ -2439,6 +2443,27 @@ io.on('connection', (socket) => {
       .filter(rs => rs.roundTotal === lowestRoundScore)
       .map(rs => rs.playerId);
     room.roundWinners = room.players.filter(p => roundWinnerIds.includes(p.id));
+    
+    // Logga händelse
+    const winnerNames = room.roundWinners.map(w => w.name).join(', ');
+    logStats('round_ended', { 
+      roomCode: room.code, 
+      round: room.roundNumber,
+      winner: winnerNames
+    });
+    
+    // Kolla om spelet är slut
+    const isGameOver = room.mode === 'quick' || room.players.some(p => p.score >= 500);
+    if (isGameOver) {
+      const gameWinner = room.players.reduce((a, b) => a.score < b.score ? a : b);
+      logStats('game_ended', {
+        roomCode: room.code,
+        winner: gameWinner.name,
+        winnerScore: gameWinner.score,
+        rounds: room.roundNumber,
+        mode: room.mode
+      });
+    }
     
     room.state = 'roundEnd';
   }
