@@ -76,9 +76,9 @@ const BOT_NAMES = [
   'Sonny',
   'GLaDOS',
   'Megatron',
-  'Optimus Prime'
-  'Maria'
-  'SAL-9000'
+  'Optimus Prime',
+  'Maria',
+  'SAL-9000',
   'Twiki' 
 ];
 
