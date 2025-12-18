@@ -3592,16 +3592,15 @@
     
     function shareToFacebook() {
       if (isMobile()) {
-        // Facebook app med förkomponerat meddelande via fb://
-        // Fallback till messenger om Facebook-appen inte kan dela direkt
-        const fbAppUrl = `fb://share?quote=${encodeURIComponent(SHARE_TEXT)}&href=${encodeURIComponent(SHARE_URL)}`;
+        // Facebook app deep link
+        const fbAppUrl = `fb://share/?link=${encodeURIComponent(SHARE_URL)}`;
         const webUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&quote=${encodeURIComponent(SHARE_TEXT)}`;
         
-        // Försök öppna appen, fallback till webb
+        // Försök öppna appen, fallback till webb efter 1 sekund
         window.location.href = fbAppUrl;
         setTimeout(() => {
           window.open(webUrl, '_blank');
-        }, 500);
+        }, 1000);
       } else {
         const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHARE_URL)}&quote=${encodeURIComponent(SHARE_TEXT)}`;
         window.open(url, '_blank', 'width=600,height=400');
