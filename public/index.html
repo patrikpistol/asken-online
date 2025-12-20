@@ -1291,7 +1291,7 @@
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 12px;
-      justify-content: center;
+      justify-content: flex-start;
     }
     
     .opponent-compact {
@@ -1302,11 +1302,10 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      min-width: 80px;
-      max-width: 110px;
-      text-align: center;
+      align-items: flex-start;
+      gap: 3px;
+      min-width: 90px;
+      max-width: 130px;
     }
     
     .opponent-compact.current-player {
@@ -1323,7 +1322,6 @@
       width: 100%;
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 3px;
     }
     
@@ -1331,8 +1329,13 @@
       font-size: 0.8rem;
     }
     
+    .opponent-compact .opponent-name .asken-icon {
+      font-size: 0.85rem;
+      margin-left: 2px;
+    }
+    
     .opponent-compact .card-count {
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 700;
       color: var(--accent);
     }
@@ -1344,18 +1347,30 @@
     
     .opponent-compact .opponent-badges {
       display: flex;
+      flex-wrap: wrap;
       gap: 4px;
       align-items: center;
-      min-height: 18px;
     }
     
-    .opponent-compact .asken-icon {
-      font-size: 0.85rem;
-    }
-    
-    .opponent-compact .player-badge {
+    .opponent-compact .player-badge,
+    .opponent-compact .dealer-badge,
+    .opponent-compact .starter-badge {
       font-size: 0.6rem;
       padding: 2px 5px;
+    }
+    
+    .opponent-compact .dealer-badge {
+      background: rgba(255,255,255,0.15);
+      color: var(--text);
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    
+    .opponent-compact .starter-badge {
+      background: rgba(0, 0, 0, 0.4);
+      color: #aaa;
+      border-radius: 4px;
+      font-weight: 500;
     }
 
     .player-section.current-player {
@@ -3291,11 +3306,13 @@
             <div class="opponent-name">
               <span class="player-icon">${playerIcon}</span>
               <span>${player.name}</span>
+              ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
             </div>
             <div class="card-count">${player.cardCount} kort</div>
             <div class="opponent-score">${player.score}p</div>
             <div class="opponent-badges">
-              ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
+              ${player.isDealer ? '<span class="dealer-badge">Gav</span>' : ''}
+              ${player.isStarter ? '<span class="starter-badge">Började</span>' : ''}
               ${player.isCurrent ? '<span class="player-badge">Spelar</span>' : ''}
             </div>
           `;
