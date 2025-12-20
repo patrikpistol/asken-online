@@ -1289,22 +1289,24 @@
     .opponents-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 12px;
+      gap: 8px;
+      margin-top: 12px;
+      justify-content: center;
     }
     
     .opponent-compact {
       background: var(--bg-card) url('gfx/bg_dark_steel.webp') repeat;
       border-radius: 10px;
-      padding: 10px 14px;
+      padding: 10px 12px;
       border: 2px solid transparent;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 10px;
-      min-width: 140px;
-      flex: 1;
-      max-width: 200px;
+      gap: 4px;
+      min-width: 80px;
+      max-width: 110px;
+      text-align: center;
     }
     
     .opponent-compact.current-player {
@@ -1312,52 +1314,47 @@
       box-shadow: var(--glow), 0 2px 8px rgba(0, 0, 0, 0.3);
     }
     
-    .opponent-compact .opponent-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      flex: 1;
-      min-width: 0;
-    }
-    
     .opponent-compact .opponent-name {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    
-    .opponent-compact .opponent-details {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-    
-    .opponent-compact .card-count {
-      background: rgba(0, 0, 0, 0.3);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--accent);
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-width: 36px;
+      gap: 3px;
+    }
+    
+    .opponent-compact .opponent-name .player-icon {
+      font-size: 0.8rem;
+    }
+    
+    .opponent-compact .card-count {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    
+    .opponent-compact .opponent-score {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+    
+    .opponent-compact .opponent-badges {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      min-height: 18px;
     }
     
     .opponent-compact .asken-icon {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
     
     .opponent-compact .player-badge {
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       padding: 2px 5px;
     }
 
@@ -3238,38 +3235,7 @@
       // Vid rundslut: visa alla med kort synliga
       const showCompactOpponents = !gameState.roundEnded;
       
-      if (showCompactOpponents && opponents.length > 0) {
-        // Kompakt vy för motståndare
-        const opponentsRow = document.createElement('div');
-        opponentsRow.className = 'opponents-row';
-        
-        for (const player of opponents) {
-          const opponentDiv = document.createElement('div');
-          opponentDiv.className = `opponent-compact ${player.isCurrent ? 'current-player' : ''}`;
-          
-          opponentDiv.innerHTML = `
-            <div class="opponent-info">
-              <div class="opponent-name">
-                ${player.isBot ? '🤖' : ''}${player.name}
-                ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
-              </div>
-              <div class="opponent-details">
-                <span>${player.score}p</span>
-                ${player.isCurrent ? '<span class="player-badge">Spelar</span>' : ''}
-              </div>
-            </div>
-            <div class="card-count" title="${player.cardCount} kort">
-              ${player.cardCount}
-            </div>
-          `;
-          
-          opponentsRow.appendChild(opponentDiv);
-        }
-        
-        container.appendChild(opponentsRow);
-      }
-      
-      // Visa egen spelare (alltid full vy)
+      // Visa egen spelare först (alltid full vy)
       if (me) {
         const section = document.createElement('div');
         section.className = `player-section ${me.isCurrent && !gameState.roundEnded ? 'current-player' : ''} is-me ${me.isWinner ? 'winner' : ''}`;
@@ -3281,7 +3247,7 @@
         section.innerHTML = `
           <div class="player-header">
             <div class="player-name">
-              ${me.name} (du)
+              👤 ${me.name} (du)
               ${me.isDealer ? '<span class="dealer-badge">Gav</span>' : ''}
               ${me.isStarter ? '<span class="starter-badge">Började</span>' : ''}
               ${me.isWinner ? '<span class="winner-badge">🏆 Vinnare!</span>' : ''}
@@ -3310,16 +3276,48 @@
         container.appendChild(section);
       }
       
+      // Under spelets gång: visa motståndare kompakt UNDER egen hand
+      if (showCompactOpponents && opponents.length > 0) {
+        const opponentsRow = document.createElement('div');
+        opponentsRow.className = 'opponents-row';
+        
+        for (const player of opponents) {
+          const opponentDiv = document.createElement('div');
+          opponentDiv.className = `opponent-compact ${player.isCurrent ? 'current-player' : ''}`;
+          
+          const playerIcon = player.isBot ? '🤖' : '👤';
+          
+          opponentDiv.innerHTML = `
+            <div class="opponent-name">
+              <span class="player-icon">${playerIcon}</span>
+              <span>${player.name}</span>
+            </div>
+            <div class="card-count">${player.cardCount} kort</div>
+            <div class="opponent-score">${player.score}p</div>
+            <div class="opponent-badges">
+              ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
+              ${player.isCurrent ? '<span class="player-badge">Spelar</span>' : ''}
+            </div>
+          `;
+          
+          opponentsRow.appendChild(opponentDiv);
+        }
+        
+        container.appendChild(opponentsRow);
+      }
+      
       // Vid rundslut: visa motståndare med synliga kort
       if (!showCompactOpponents && opponents.length > 0) {
         for (const player of opponents) {
           const section = document.createElement('div');
           section.className = `player-section ${player.isCurrent ? 'current-player' : ''} ${player.isWinner ? 'winner' : ''} ${player.isBot ? 'is-bot' : ''}`;
 
+          const playerIcon = player.isBot ? '🤖' : '👤';
+
           section.innerHTML = `
             <div class="player-header">
               <div class="player-name">
-                ${player.isBot ? '🤖 ' : ''}${player.name}
+                ${playerIcon} ${player.name}
                 ${player.isDealer ? '<span class="dealer-badge">Gav</span>' : ''}
                 ${player.isStarter ? '<span class="starter-badge">Började</span>' : ''}
                 ${player.isWinner ? '<span class="winner-badge">🏆 Vinnare!</span>' : ''}
