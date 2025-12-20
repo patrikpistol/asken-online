@@ -1661,10 +1661,19 @@
       align-items: center;
       z-index: 100;
       padding: 20px;
+      opacity: 0;
+      transition: opacity 0.4s ease;
     }
 
     .modal-overlay.visible {
       display: flex;
+      opacity: 1;
+      animation: fadeIn 0.4s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     .modal {
@@ -1675,6 +1684,19 @@
       width: 100%;
       text-align: center;
       box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+      transform: scale(0.9);
+      animation: modalPopIn 0.4s ease forwards;
+    }
+    
+    @keyframes modalPopIn {
+      from { 
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+      }
+      to { 
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
     }
 
     .modal h2 {
@@ -3040,7 +3062,7 @@
         showScreen('gameScreen');
         
         if (gameState.roundEnded) {
-          setTimeout(() => showResultModal(), 500);
+          setTimeout(() => showResultModal(), 1000);
         }
       }
     }
@@ -3311,9 +3333,9 @@
             <div class="card-count">${player.cardCount} kort</div>
             <div class="opponent-score">${player.score}p</div>
             <div class="opponent-badges">
+              ${player.isCurrent ? '<span class="player-badge">Spelar</span>' : ''}
               ${player.isDealer ? '<span class="dealer-badge">Gav</span>' : ''}
               ${player.isStarter ? '<span class="starter-badge">Började</span>' : ''}
-              ${player.isCurrent ? '<span class="player-badge">Spelar</span>' : ''}
             </div>
           `;
           
