@@ -1904,10 +1904,26 @@
       
       /* Fix för placering med emoji på mobil */
       .score-table .place-cell {
-        white-space: nowrap;
-        display: flex;
+        vertical-align: middle;
+      }
+      
+      .score-table .place-content {
+        display: inline-flex;
         align-items: center;
-        gap: 4px;
+        justify-content: flex-start;
+        gap: 6px;
+        height: 24px;
+      }
+      
+      .score-table .place-num {
+        font-size: 1rem;
+        line-height: 24px;
+      }
+      
+      .score-table .place-emoji {
+        font-size: 1.1rem;
+        line-height: 24px;
+        vertical-align: middle;
       }
       
       /* Extra padding för asken-ikon på mobil */
