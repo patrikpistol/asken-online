@@ -1284,6 +1284,82 @@
       border: 2px solid transparent;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
+    
+    /* Kompakt vy för motståndare under spelets gång */
+    .opponents-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    
+    .opponent-compact {
+      background: var(--bg-card) url('gfx/bg_dark_steel.webp') repeat;
+      border-radius: 10px;
+      padding: 10px 14px;
+      border: 2px solid transparent;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 140px;
+      flex: 1;
+      max-width: 200px;
+    }
+    
+    .opponent-compact.current-player {
+      border-color: var(--accent);
+      box-shadow: var(--glow), 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .opponent-compact .opponent-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .opponent-compact .opponent-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .opponent-compact .opponent-details {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    
+    .opponent-compact .card-count {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+    }
+    
+    .opponent-compact .asken-icon {
+      font-size: 0.9rem;
+    }
+    
+    .opponent-compact .player-badge {
+      font-size: 0.65rem;
+      padding: 2px 5px;
+    }
 
     .player-section.current-player {
       border-color: var(--accent);
@@ -3154,41 +3230,72 @@
       const container = document.getElementById('playersArea');
       container.innerHTML = '';
 
-      // Sortera så att egen spelare visas först
-      const sortedPlayers = [...gameState.players].sort((a, b) => {
-        if (a.isMe) return -1;
-        if (b.isMe) return 1;
-        return 0;
-      });
-
-      for (const player of sortedPlayers) {
+      // Hitta egen spelare och motståndare
+      const me = gameState.players.find(p => p.isMe);
+      const opponents = gameState.players.filter(p => !p.isMe);
+      
+      // Under spelets gång: visa motståndare kompakt
+      // Vid rundslut: visa alla med kort synliga
+      const showCompactOpponents = !gameState.roundEnded;
+      
+      if (showCompactOpponents && opponents.length > 0) {
+        // Kompakt vy för motståndare
+        const opponentsRow = document.createElement('div');
+        opponentsRow.className = 'opponents-row';
+        
+        for (const player of opponents) {
+          const opponentDiv = document.createElement('div');
+          opponentDiv.className = `opponent-compact ${player.isCurrent ? 'current-player' : ''}`;
+          
+          opponentDiv.innerHTML = `
+            <div class="opponent-info">
+              <div class="opponent-name">
+                ${player.isBot ? '🤖' : ''}${player.name}
+                ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
+              </div>
+              <div class="opponent-details">
+                <span>${player.score}p</span>
+                ${player.isCurrent ? '<span class="player-badge">Spelar</span>' : ''}
+              </div>
+            </div>
+            <div class="card-count" title="${player.cardCount} kort">
+              ${player.cardCount}
+            </div>
+          `;
+          
+          opponentsRow.appendChild(opponentDiv);
+        }
+        
+        container.appendChild(opponentsRow);
+      }
+      
+      // Visa egen spelare (alltid full vy)
+      if (me) {
         const section = document.createElement('div');
-        section.className = `player-section ${player.isCurrent && !gameState.roundEnded ? 'current-player' : ''} ${player.isMe ? 'is-me' : ''} ${player.isWinner ? 'winner' : ''} ${player.isBot ? 'is-bot' : ''}`;
+        section.className = `player-section ${me.isCurrent && !gameState.roundEnded ? 'current-player' : ''} is-me ${me.isWinner ? 'winner' : ''}`;
 
         const hasPlayable = gameState.playableCardIds?.length > 0;
-        // I hjälpläge: kan bara passa om inga spelbara kort
-        // I standardläge: kan alltid försöka passa (servern validerar)
-        const canPass = player.isCurrent && player.isMe && !hasPlayable && !gameState.roundEnded;
-        const showPassEnabled = gameState.helpMode ? canPass : (player.isCurrent && player.isMe && !gameState.roundEnded);
+        const canPass = me.isCurrent && !hasPlayable && !gameState.roundEnded;
+        const showPassEnabled = gameState.helpMode ? canPass : (me.isCurrent && !gameState.roundEnded);
 
         section.innerHTML = `
           <div class="player-header">
             <div class="player-name">
-              ${player.isBot ? '🤖 ' : ''}${player.name}${player.isMe ? ' (du)' : ''}
-              ${player.isDealer ? '<span class="dealer-badge">Gav</span>' : ''}
-              ${player.isStarter ? '<span class="starter-badge">Började</span>' : ''}
-              ${player.isWinner ? '<span class="winner-badge">🏆 Vinnare!</span>' : ''}
-              ${player.isCurrent && !gameState.roundEnded ? '<span class="player-badge">Spelar</span>' : ''}
-              ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
+              ${me.name} (du)
+              ${me.isDealer ? '<span class="dealer-badge">Gav</span>' : ''}
+              ${me.isStarter ? '<span class="starter-badge">Började</span>' : ''}
+              ${me.isWinner ? '<span class="winner-badge">🏆 Vinnare!</span>' : ''}
+              ${me.isCurrent && !gameState.roundEnded ? '<span class="player-badge">Spelar</span>' : ''}
+              ${me.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
             </div>
             <div class="player-stats">
-              <span>${player.cardCount} kort</span>
+              <span>${me.cardCount} kort</span>
               <span>•</span>
-              <span>Poäng: ${player.score}</span>
+              <span>Poäng: ${me.score}</span>
             </div>
           </div>
-          ${player.hand ? renderRevealedHand(player, player.isMe) : renderHiddenHand(player.cardCount)}
-          ${player.isMe && player.isCurrent && !gameState.roundEnded ? `
+          ${me.hand ? renderRevealedHand(me, true) : renderHiddenHand(me.cardCount)}
+          ${me.isCurrent && !gameState.roundEnded ? `
             <div class="action-buttons">
               <button class="action-btn play" onclick="playCards()" ${selectedCardIds.length === 0 || (gameState.helpMode && !validateSelectedCards()) ? 'disabled' : ''}>
                 Spela ${selectedCardIds.length > 0 ? '(' + selectedCardIds.length + ' kort)' : ''}
@@ -3201,6 +3308,34 @@
         `;
 
         container.appendChild(section);
+      }
+      
+      // Vid rundslut: visa motståndare med synliga kort
+      if (!showCompactOpponents && opponents.length > 0) {
+        for (const player of opponents) {
+          const section = document.createElement('div');
+          section.className = `player-section ${player.isCurrent ? 'current-player' : ''} ${player.isWinner ? 'winner' : ''} ${player.isBot ? 'is-bot' : ''}`;
+
+          section.innerHTML = `
+            <div class="player-header">
+              <div class="player-name">
+                ${player.isBot ? '🤖 ' : ''}${player.name}
+                ${player.isDealer ? '<span class="dealer-badge">Gav</span>' : ''}
+                ${player.isStarter ? '<span class="starter-badge">Började</span>' : ''}
+                ${player.isWinner ? '<span class="winner-badge">🏆 Vinnare!</span>' : ''}
+                ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
+              </div>
+              <div class="player-stats">
+                <span>${player.cardCount} kort</span>
+                <span>•</span>
+                <span>Poäng: ${player.score}</span>
+              </div>
+            </div>
+            ${player.hand ? renderRevealedHand(player, false) : renderHiddenHand(player.cardCount)}
+          `;
+
+          container.appendChild(section);
+        }
       }
     }
 
