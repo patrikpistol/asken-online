@@ -1316,9 +1316,6 @@
     .opponent-compact .opponent-name {
       font-size: 0.85rem;
       font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
       width: 100%;
       display: flex;
       align-items: center;
@@ -1327,11 +1324,20 @@
     
     .opponent-compact .opponent-name .player-icon {
       font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+    
+    .opponent-compact .opponent-name .name-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
     }
     
     .opponent-compact .opponent-name .asken-icon {
       font-size: 0.85rem;
       margin-left: 2px;
+      flex-shrink: 0;
     }
     
     .opponent-compact .card-count {
@@ -1747,6 +1753,20 @@
       font-size: 1rem;
     }
     
+    .score-table .place-content {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .score-table .place-num {
+      line-height: 1;
+    }
+    
+    .score-table .place-emoji {
+      line-height: 1;
+    }
+    
     .score-table .winner-row {
       background: rgba(198, 158, 96, 0.15);
     }
@@ -1880,6 +1900,19 @@
       
       .share-buttons {
         gap: 6px;
+      }
+      
+      /* Fix för placering med emoji på mobil */
+      .score-table .place-cell {
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      
+      /* Extra padding för asken-ikon på mobil */
+      .opponent-compact {
+        padding-right: 14px;
       }
       
       .tableau {
@@ -3327,7 +3360,7 @@
           opponentDiv.innerHTML = `
             <div class="opponent-name">
               <span class="player-icon">${playerIcon}</span>
-              <span>${player.name}</span>
+              <span class="name-text">${player.name}</span>
               ${player.hasAsken ? '<span class="asken-icon" title="Har asken">📦</span>' : ''}
             </div>
             <div class="card-count">${player.cardCount} kort</div>
@@ -3544,7 +3577,7 @@
         }
         
         const placeEmoji = currentPlace === 1 ? '🥇' : currentPlace === 2 ? '🥈' : currentPlace === 3 ? '🥉' : '💀';
-        const placeText = `${placeEmoji} ${currentPlace}`;
+        const placeText = `<span class="place-content"><span class="place-num">${currentPlace}</span><span class="place-emoji">${placeEmoji}</span></span>`;
         
         if (isGameOver) {
           return `
