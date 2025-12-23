@@ -1249,20 +1249,40 @@ function getBotMove(player, tableau, difficulty = 'dumb', allPlayers = []) {
     return { action: 'play', cards: bestSequence };
   }
   
-  // SMART: Avancerad strategi
+  // SMART: Avancerad strategi - planerande och strategisk
   if (difficulty === 'smart') {
     let bestSequence = [];
     let bestScore = -Infinity;
     
+    // Analysera handen - hitta "hållkort" (kort som blockerar kedjor)
+    const holdingCards = new Set();
+    for (const card of player.hand) {
+      const row = tableau[card.suit];
+      if (row) {
+        // Kort som ligger precis intill spelplanen men har kort bakom sig
+        if (card.rank === row.low - 1) {
+          // Kollar om vi har fler kort under detta
+          const hasLower = player.hand.some(c => c.suit === card.suit && c.rank < card.rank);
+          if (hasLower) holdingCards.add(card.id);
+        }
+        if (card.rank === row.high + 1) {
+          // Kollar om vi har fler kort över detta
+          const hasHigher = player.hand.some(c => c.suit === card.suit && c.rank > card.rank);
+          if (hasHigher) holdingCards.add(card.id);
+        }
+      }
+    }
+    
     for (const seq of allSequences) {
       let score = 0;
       
-      // Poäng för att bli av med kort
+      // Poäng för att bli av med höga poängkort (men inte lika aggressivt som Ivrig)
       const points = seq.reduce((sum, c) => sum + getCardPoints(c), 0);
-      score += points * 2;
+      score += points;
       
-      // Bonus för att spela många kort
-      score += seq.length * 50;
+      // Smart spelar INTE nödvändigtvis många kort - kvalitet över kvantitet
+      // Liten bonus för att spela kort, men inte för mycket
+      score += seq.length * 10;
       
       // Simulera hur spelplanen ser ut efter draget
       const newTableau = JSON.parse(JSON.stringify(tableau));
@@ -1282,36 +1302,55 @@ function getBotMove(player, tableau, difficulty = 'dumb', allPlayers = []) {
       // Beräkna hur många kort jag kan spela efter detta drag
       const remainingHand = player.hand.filter(c => !seq.some(s => s.id === c.id));
       const futurePlayable = remainingHand.filter(c => canBePartOfSequence(c, remainingHand, newTableau));
-      score += futurePlayable.length * 30;
+      score += futurePlayable.length * 40;
       
-      // Straffa om vi öppnar upp för motståndare (ändpunkter nära deras möjliga kort)
-      // Bonus om vi spelar kort som ligger "i mitten" av vår hand
+      // STOR bonus för att spela ess eller kungar (avslutar kedjan permanent)
       for (const card of seq) {
-        // Bonus för att spela ess eller kungar (slutar kedjan)
         if (card.rank === 1 || card.rank === 13) {
-          score += 40;
+          score += 80;
         }
-        
-        // Bonus för att behålla kort som blockerar (6:or och 8:or)
-        const isBlockingCard = card.rank === 6 || card.rank === 8;
-        if (isBlockingCard) {
-          // Kolla om vi har kort på andra sidan
-          const hasLower = remainingHand.some(c => c.suit === card.suit && c.rank < card.rank);
-          const hasHigher = remainingHand.some(c => c.suit === card.suit && c.rank > card.rank);
-          if (hasLower && hasHigher) {
-            score -= 20; // Straffa att spela blockerande kort om vi har kort på båda sidor
+      }
+      
+      // STRAFFA att spela hållkort (om vi inte måste)
+      for (const card of seq) {
+        if (holdingCards.has(card.id)) {
+          // Kolla om vi har andra alternativ
+          if (allSequences.length > 1) {
+            score -= 60; // Stor straff för att spela hållkort i onödan
           }
         }
       }
       
-      // Bonus för att tömma en hel färg
+      // Straffa att öppna upp för motståndare
+      for (const card of seq) {
+        const row = newTableau[card.suit];
+        if (row) {
+          // Om vi öppnar en ny ändpunkt och inte har kort där
+          const hasAtLow = remainingHand.some(c => c.suit === card.suit && c.rank === row.low - 1);
+          const hasAtHigh = remainingHand.some(c => c.suit === card.suit && c.rank === row.high + 1);
+          
+          // Straffa om vi öppnar en sida vi inte kan fortsätta på
+          if (!hasAtLow && row.low > 1) score -= 15;
+          if (!hasAtHigh && row.high < 13) score -= 15;
+        }
+      }
+      
+      // Bonus för att tömma en hel färg (då kan vi aldrig fastna där)
       const suitCounts = {};
       for (const c of remainingHand) {
         suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1;
       }
       for (const card of seq) {
-        if (!suitCounts[card.suit] || suitCounts[card.suit] === 0) {
-          score += 25; // Bonus för att bli av med en hel färg
+        const remaining = suitCounts[card.suit] || 0;
+        if (remaining === 0) {
+          score += 50; // Stor bonus för att bli helt av med en färg
+        }
+      }
+      
+      // Bonus för att spela 7:or (startar nya färger = mer kontroll)
+      for (const card of seq) {
+        if (card.rank === 7 && !tableau[card.suit]) {
+          score += 30;
         }
       }
       
