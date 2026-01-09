@@ -125,6 +125,21 @@
       color: var(--text);
       min-height: 100vh;
       padding: 16px;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    
+    /* Tillåt markering i input-fält */
+    input, textarea {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
     }
 
     .container {
@@ -1304,8 +1319,8 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 3px;
-      min-width: 90px;
-      max-width: 130px;
+      min-width: 100px;
+      max-width: 150px;
     }
     
     .opponent-compact.current-player {
@@ -1447,6 +1462,21 @@
 
     .asken-icon {
       font-size: 1rem;
+    }
+    
+    .asken-icon.asken-blink {
+      animation: askenBlink 0.5s ease-in-out 3;
+    }
+    
+    @keyframes askenBlink {
+      0%, 100% { 
+        opacity: 1; 
+        transform: scale(1);
+      }
+      50% { 
+        opacity: 0.3; 
+        transform: scale(1.3);
+      }
     }
 
     .player-stats {
@@ -2441,10 +2471,26 @@
       });
 
       socket.on('gameState', (state) => {
+        // Spåra om asken bytte ägare
+        const previousAskenHolder = gameState?.askenHolderId;
+        const newAskenHolder = state.askenHolderId;
+        const askenChanged = previousAskenHolder !== newAskenHolder && newAskenHolder;
+        
         gameState = state;
         saveSession(state.code, currentPlayerName);
         selectedCardIds = [];
         render();
+        
+        // Om asken bytte ägare, trigga blinkanimation
+        if (askenChanged) {
+          setTimeout(() => {
+            const askenIcons = document.querySelectorAll('.asken-icon');
+            askenIcons.forEach(icon => {
+              icon.classList.add('asken-blink');
+              setTimeout(() => icon.classList.remove('asken-blink'), 1500);
+            });
+          }, 100);
+        }
       });
 
       socket.on('cardsSelected', (cardIds) => {
@@ -3660,12 +3706,29 @@
       const inviteName = urlParams.get('namn');
       const inviteRoom = urlParams.get('rum');
       
+      // Flagga för att veta om användaren kom via direktlänk
+      let isDirectLink = false;
+      
       if (inviteName) {
         document.getElementById('playerName').value = inviteName;
       }
       if (inviteRoom) {
         document.getElementById('roomCode').value = inviteRoom.toUpperCase();
         updateMainButton();
+        isDirectLink = true;
+      }
+      
+      // Om direktlänk: ändra "Hitta andra spelare" till "Gå till startsidan"
+      if (isDirectLink) {
+        const findPlayersBtn = document.getElementById('findPlayersBtn');
+        findPlayersBtn.textContent = '🏠 Gå till startsidan';
+        findPlayersBtn.onclick = function() {
+          document.getElementById('playerName').value = '';
+          document.getElementById('roomCode').value = '';
+          updateMainButton();
+          findPlayersBtn.textContent = '🔍 Hitta andra spelare';
+          findPlayersBtn.onclick = findPlayers;
+        };
       }
       
       // Rensa URL-parametrar utan att ladda om sidan
